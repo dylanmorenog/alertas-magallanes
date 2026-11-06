@@ -209,8 +209,12 @@ export const AVISO_LEGAL =
   "Página informativa: no sustituye los avisos de Protección Civil ni de Capitanía de Puerto.";
 
 // A partir de cuántas horas se advierte que el pronóstico es viejo.
-// Normalmente la página tiene menos de 1 hora (se regenera cada 30 minutos).
-export const HORAS_PRONOSTICO_VIEJO = 3;
+// Con el monitor externo (UptimeRobot cada 5 minutos) y revalidate de 25 minutos, nadie
+// debería ver una página de más de ~30 minutos. Si pasa de 1 hora es porque la
+// regeneración falló (por ejemplo, Open-Meteo no respondió y Next siguió sirviendo la
+// última versión buena) o porque es una copia guardada sin señal. El monitor no puede
+// detectar eso: este aviso es lo que se lo dice a la gente.
+export const HORAS_PRONOSTICO_VIEJO = 1;
 
 // Al abrir sin señal una copia guardada de otro día. `fecha` ya viene formateada.
 export const AVISO_DIA_ANTERIOR = (fecha: string) =>
@@ -221,5 +225,5 @@ export const INSTRUCCIONES_INSTALAR =
   "Instálala en tu celular: en Android, menú ⋮ → Instalar app. En iPhone, Compartir → Agregar a inicio.";
 
 export const AVISO_PRONOSTICO_VIEJO =
-  `Este pronóstico tiene más de ${HORAS_PRONOSTICO_VIEJO} horas y puede haber cambiado. ` +
-  "Vuelve a cargar la página cuando tengas señal.";
+  `Este pronóstico tiene más de ${HORAS_PRONOSTICO_VIEJO === 1 ? "una hora" : `${HORAS_PRONOSTICO_VIEJO} horas`} ` +
+  "y puede haber cambiado. Vuelve a cargar la página cuando tengas señal.";

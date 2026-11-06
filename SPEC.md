@@ -37,6 +37,14 @@ inundaciones), no quienes salen a pescar. Ver "Hallazgos con la comunidad".
    próximos 5 días, explicando por qué en lenguaje sencillo. Los días 4 y 5 se
    marcan como "puede cambiar"; una alerta en esos días sí cambia la respuesta
    principal, indicando que puede cambiar.
+   Frescura: nadie debe ver un pronóstico de más de ~30 minutos. La página se
+   regenera cada 25 minutos (caché ISR, para no hacer una consulta a Open-Meteo
+   por visita) y un monitor externo (UptimeRobot, palabra clave, cada 5 minutos)
+   la visita para que la regeneración no la pague la primera persona que llega.
+   El mismo monitor avisa por correo si la página muestra "NO SABEMOS". Si
+   Open-Meteo falla, Next sigue sirviendo la última versión buena y el monitor no
+   lo detecta: por eso la página avisa a partir de 1 hora de antigüedad. No
+   encender el CDN de Railway: respondería sin pasar por Next.
 6. Para amarillo y rojo: lista corta de qué hacer orientada a hogares
    (techos, inundaciones, celulares cargados, números de emergencia).
    Máximo 5 consejos, los más relevantes para el tipo de alerta; el resto queda

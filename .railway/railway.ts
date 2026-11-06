@@ -6,6 +6,11 @@
 // servicio pasaría a los 10 reintentos del panel en lugar de los 3 de railway.json.
 //
 // Revisar cambios con `railway config plan` antes de `railway config apply`.
+//
+// NO encender el CDN de Railway (`cdn`) sin revisar antes la frescura de la página: con los
+// encabezados de Next (s-maxage y stale-while-revalidate de un año) el CDN guardaría el HTML
+// y respondería sin pasar por Next, y el monitor que mantiene fresca la página dejaría de
+// servir. Hoy no está encendido: las respuestas no traen `x-cache`.
 
 import { defineRailway, github, project, service } from "railway/iac";
 

@@ -49,10 +49,13 @@ const despues = (minutos: number) => new Date(generado.getTime() + minutos * 60_
 test("antigüedad reciente no es vieja", () => {
   assert.deepEqual(describirAntiguedad(generado, despues(0)), { texto: "hace un momento", vieja: false });
   assert.deepEqual(describirAntiguedad(generado, despues(5)), { texto: "hace 5 minutos", vieja: false });
-  assert.deepEqual(describirAntiguedad(generado, despues(179)), { texto: "hace 2 horas", vieja: false });
+  // Lo normal con el monitor: hasta ~30 minutos.
+  assert.deepEqual(describirAntiguedad(generado, despues(35)), { texto: "hace 35 minutos", vieja: false });
+  assert.deepEqual(describirAntiguedad(generado, despues(59)), { texto: "hace 59 minutos", vieja: false });
 });
 
-test("a partir de 3 horas el pronóstico es viejo", () => {
+test("a partir de 1 hora el pronóstico es viejo", () => {
+  assert.deepEqual(describirAntiguedad(generado, despues(60)), { texto: "hace 1 hora", vieja: true });
   assert.deepEqual(describirAntiguedad(generado, despues(180)), { texto: "hace 3 horas", vieja: true });
   assert.deepEqual(describirAntiguedad(generado, despues(26 * 60)), { texto: "hace 26 horas", vieja: true });
   assert.deepEqual(describirAntiguedad(generado, despues(3 * 24 * 60)), { texto: "hace 3 días", vieja: true });

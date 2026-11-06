@@ -26,10 +26,17 @@ import {
 import { CONTACTOS } from "../src/config/contactos.ts";
 import { Antiguedad, AvisoDiaAnterior } from "./antiguedad.tsx";
 
-// Regenerar la página cada 30 minutos (ISR). Si Open-Meteo falla al regenerar,
-// Next sigue sirviendo la última versión buena. Por eso aquí no atrapamos errores:
-// una página de "sin datos" quedaría cacheada en lugar de la buena.
-export const revalidate = 1800;
+// Regenerar la página cada 25 minutos (ISR). Next sirve la copia guardada y, cuando una
+// visita la encuentra vencida, le entrega la vieja y regenera por detrás. Un monitor
+// externo (UptimeRobot, cada 5 minutos) visita la página para que esa "primera visita"
+// sea siempre la suya: así nadie ve una página de más de ~30 minutos (25 + 5).
+// La caché se queda: como mucho ~58 regeneraciones al día (~116 llamadas a Open-Meteo),
+// por más visitas que haya en un día de alerta.
+//
+// Si Open-Meteo falla al regenerar, Next sigue sirviendo la última versión buena. Por eso
+// aquí no atrapamos errores: una página de "sin datos" quedaría cacheada en lugar de la
+// buena. Si eso dura, el aviso de antigüedad (más de 1 hora) se lo dice a la gente.
+export const revalidate = 1500;
 
 // El color nunca va solo: siempre con un ícono y una palabra.
 const ICONOS: Record<Tono, string> = { verde: "✓", amarillo: "!", rojo: "✕", gris: "?" };
