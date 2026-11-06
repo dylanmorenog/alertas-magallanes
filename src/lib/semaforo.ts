@@ -6,8 +6,19 @@ import { UMBRALES } from "../config/reglas.ts";
 
 export type Nivel = "verde" | "amarillo" | "rojo";
 
-export const VARIABLES = ["rachas", "olas", "lluvia"] as const;
+// El orden define en qué orden se listan razones y faltantes: primero lo que más importa
+// a los hogares (lluvia e inundación), al final el dato secundario (olas).
+export const VARIABLES = ["lluvia", "lluvia3d", "rachas", "olas"] as const;
 export type Variable = (typeof VARIABLES)[number];
+
+export type Regla = {
+  amarillo: number;
+  rojo: number;
+  unidad: string;
+  mueveElColor: boolean; // false = se muestra como dato, pero no cuenta para el color
+  porValidar: boolean; // umbral provisional, pendiente de validar con datos reales
+};
+export type Reglas = Record<Variable, Regla>;
 
 // Por qué un día no es verde: qué variable, cuánto marcó y qué umbral superó.
 export type Razon = {
@@ -26,9 +37,9 @@ export type Evaluacion = {
 
 const ORDEN: Nivel[] = ["verde", "amarillo", "rojo"];
 
-function nivelDe(valor: number, umbral: { amarillo: number; rojo: number }): Nivel {
-  if (valor >= umbral.rojo) return "rojo";
-  if (valor >= umbral.amarillo) return "amarillo";
+function nivelDe(valor: number, regla: Regla): Nivel {
+  if (valor >= regla.rojo) return "rojo";
+  if (valor >= regla.amarillo) return "amarillo";
   return "verde";
 }
 
@@ -38,11 +49,14 @@ function peor(actual: Nivel | null, nuevo: Nivel): Nivel {
   return ORDEN.indexOf(nuevo) > ORDEN.indexOf(actual) ? nuevo : actual;
 }
 
-export function evaluarDia(dia: PronosticoDia): Evaluacion {
+// Las reglas llegan como parámetro (por defecto, las de la configuración) para poder
+// probar otras y comparar umbrales sobre los mismos datos históricos.
+export function evaluarDia(dia: PronosticoDia, reglas: Reglas = UMBRALES): Evaluacion {
   const valores: Record<Variable, number | null> = {
+    lluvia: dia.lluviaMm,
+    lluvia3d: dia.lluvia3dMm,
     rachas: dia.rachasMaxKmh,
     olas: dia.olasMaxM,
-    lluvia: dia.lluviaMm,
   };
 
   let nivel: Nivel | null = null;
@@ -50,14 +64,18 @@ export function evaluarDia(dia: PronosticoDia): Evaluacion {
   const faltantes: Variable[] = [];
 
   for (const variable of VARIABLES) {
+    const regla = reglas[variable];
+    // Si no cuenta para el color, tampoco cuenta que falte su dato.
+    if (!regla.mueveElColor) continue;
+
     const valor = valores[variable];
     if (valor === null) {
       faltantes.push(variable);
       continue;
     }
-    const nivelVariable = nivelDe(valor, UMBRALES[variable]);
+    const nivelVariable = nivelDe(valor, regla);
     if (nivelVariable !== "verde") {
-      razones.push({ variable, valor, umbral: UMBRALES[variable][nivelVariable], nivel: nivelVariable });
+      razones.push({ variable, valor, umbral: regla[nivelVariable], nivel: nivelVariable });
     }
     nivel = peor(nivel, nivelVariable);
   }

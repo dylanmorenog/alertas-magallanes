@@ -8,25 +8,45 @@ real y parte de mi portafolio para aplicar a Computer Science.
 Next.js con TypeScript, PostgreSQL con Prisma, desplegado en Railway.
 
 ## Requisitos
+Usuarios principales: familias y vecinos que necesitan prepararse (techos,
+inundaciones), no quienes salen a pescar. Ver "Hallazgos con la comunidad".
+
 1. Consultar la API gratuita de Open-Meteo (sin API key) para 18.29, -93.87:
-   lluvia acumulada, viento máximo y rachas máximas de los próximos 3 días.
+   lluvia diaria, viento máximo y rachas máximas de hoy y los próximos 4 días
+   (5 en total), más los 2 días anteriores para calcular la lluvia acumulada.
    Y la Marine API de Open-Meteo para la altura máxima de olas en un punto
    mar adentro, 18.35, -93.87. Zona horaria America/Mexico_City.
-2. Semáforo por día (verde, amarillo, rojo). Reglas iniciales, fáciles de
-   ajustar porque las voy a validar con pescadores del pueblo:
-   - Amarillo: rachas ≥ 50 km/h, olas ≥ 1.5 m, o lluvia ≥ 50 mm.
-   - Rojo: rachas ≥ 70 km/h, olas ≥ 2.5 m, o lluvia ≥ 100 mm.
-3. Página web en español, muy ligera (que cargue con mala señal), instalable
-   como PWA, que conteste en grande "¿Se puede salir a la laguna hoy?", con el
-   semáforo de hoy y los próximos 2 días, explicando por qué en lenguaje sencillo.
-4. Para amarillo y rojo: lista corta de qué hacer (asegurar lanchas y techos,
-   cargar celulares, números de emergencia).
-5. Aviso visible de que es informativo y no sustituye a Protección Civil ni a
+2. Lluvia acumulada de 3 días para cada día: la lluvia de ese día más la de los
+   2 días anteriores (lo que ya cayó cuenta para las inundaciones). En la página
+   se explica como "lluvia de hoy y los 2 días anteriores".
+3. Semáforo por día (verde, amarillo, rojo). Reglas en un archivo de
+   configuración, fáciles de ajustar:
+   - Amarillo: rachas ≥ 50 km/h, lluvia ≥ 50 mm, lluvia de 3 días ≥ 100 mm,
+     u olas ≥ 1.5 m.
+   - Rojo: rachas ≥ 70 km/h, lluvia ≥ 100 mm, lluvia de 3 días ≥ 200 mm,
+     u olas ≥ 2.5 m.
+   - Los umbrales de lluvia de 3 días son provisionales, marcados "por validar".
+   - Las olas son un dato secundario: mueven el color, pero una opción de la
+     configuración permite desactivarlo.
+4. Mensaje listo para copiar y publicar a mano en Facebook. La página es el
+   enlace del mensaje y debe verse bien al compartirse.
+5. Página web en español, muy ligera (que cargue con mala señal), instalable
+   como PWA, que conteste en grande "¿Viene mal tiempo a Magallanes?" para los
+   próximos 5 días, explicando por qué en lenguaje sencillo. Los días 4 y 5 se
+   marcan como "puede cambiar"; una alerta en esos días sí cambia la respuesta
+   principal, indicando que puede cambiar.
+6. Para amarillo y rojo: lista corta de qué hacer orientada a hogares
+   (techos, inundaciones, celulares cargados, números de emergencia).
+   No predecir suspensión de clases.
+7. Aviso visible de que es informativo y no sustituye a Protección Civil ni a
    Capitanía de Puerto.
 
 ## Más adelante
+- Validar los umbrales de lluvia (sobre todo los de 3 días) con la API
+  histórica de Open-Meteo contra fechas de inundaciones reales del pueblo.
 - Guardar el historial de pronósticos en la base de datos.
-- Generar el mensaje de alerta listo para publicar en WhatsApp y Facebook.
+- Publicación automática en Facebook (hoy se publica a mano).
+- Mensaje para WhatsApp.
 
 ## Notas
 - Los modelos de oleaje no cubren la laguna: las olas del Golfo son una señal

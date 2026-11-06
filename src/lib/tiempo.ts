@@ -5,7 +5,7 @@
 // calendario se convierten a Date en UTC y se formatean en UTC: así nunca se corren de día.
 
 import { ZONA_HORARIA } from "./open-meteo.ts";
-import { HORAS_PRONOSTICO_VIEJO } from "../config/reglas.ts";
+import { DIAS_MAS_CONFIABLES, HORAS_PRONOSTICO_VIEJO } from "../config/reglas.ts";
 
 function fechaComoUtc(fecha: string): Date {
   return new Date(`${fecha}T00:00:00Z`);
@@ -33,13 +33,42 @@ export function sumarDias(fecha: string, dias: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Días de calendario entre dos fechas "AAAA-MM-DD" (negativo si `hasta` es anterior).
+export function diasEntre(desde: string, hasta: string): number {
+  return Math.round((fechaComoUtc(hasta).getTime() - fechaComoUtc(desde).getTime()) / 86_400_000);
+}
+
+// Los días más lejanos del pronóstico son menos confiables: hoy es el día 0, así que con
+// DIAS_MAS_CONFIABLES = 3 "pueden cambiar" el día 4 (+3) y el día 5 (+4).
+export function puedeCambiar(fecha: string, hoy: string): boolean {
+  return diasEntre(hoy, fecha) >= DIAS_MAS_CONFIABLES;
+}
+
+// "sábado 7"
+function diaDeLaSemana(fecha: string): string {
+  return new Intl.DateTimeFormat("es-MX", { timeZone: "UTC", weekday: "long", day: "numeric" }).format(
+    fechaComoUtc(fecha),
+  );
+}
+
+// "hoy", "mañana" o "el sábado 7", para frases como "lo más fuerte el sábado 7".
+export function elDia(fecha: string, hoy: string): string {
+  if (fecha === hoy) return "hoy";
+  if (fecha === sumarDias(hoy, 1)) return "mañana";
+  return `el ${diaDeLaSemana(fecha)}`;
+}
+
+// "de hoy", "de mañana" o "del sábado 7", para "lluvia de hoy y los 2 días anteriores".
+export function delDia(fecha: string, hoy: string): string {
+  const dia = elDia(fecha, hoy);
+  return dia.startsWith("el ") ? `del ${dia.slice(3)}` : `de ${dia}`;
+}
+
 // "Hoy", "Mañana" o "Sábado 7".
 export function nombreDelDia(fecha: string, hoy: string): string {
   if (fecha === hoy) return "Hoy";
   if (fecha === sumarDias(hoy, 1)) return "Mañana";
-  const texto = new Intl.DateTimeFormat("es-MX", { timeZone: "UTC", weekday: "long", day: "numeric" })
-    .format(fechaComoUtc(fecha));
-  return mayuscula(texto);
+  return mayuscula(diaDeLaSemana(fecha));
 }
 
 // "jueves 5 de noviembre" (sin la coma que pone Intl, para escribir "Hoy, jueves 5 de noviembre")

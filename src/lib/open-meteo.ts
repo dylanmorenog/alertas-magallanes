@@ -1,10 +1,15 @@
 // Cliente mínimo para Open-Meteo: pronóstico del clima y Marine API.
 // Docs: https://open-meteo.com/en/docs y https://open-meteo.com/en/docs/marine-weather-api
 
+import { lluviaAcumulada } from "./lluvia.ts";
+import { DIAS_LLUVIA_ACUMULADA } from "../config/reglas.ts";
+
 const URL_CLIMA = "https://api.open-meteo.com/v1/forecast";
 const URL_MARINA = "https://marine-api.open-meteo.com/v1/marine";
 export const ZONA_HORARIA = "America/Mexico_City";
-const DIAS = 3;
+const DIAS = 5; // hoy y los 4 siguientes
+// Días anteriores a hoy que hacen falta para que la lluvia acumulada de hoy esté completa.
+const DIAS_PASADOS = DIAS_LLUVIA_ACUMULADA - 1;
 const TIEMPO_MAXIMO_MS = 10_000;
 
 type Coordenadas = { latitud: number; longitud: number };
@@ -34,6 +39,7 @@ type RespuestaMarina = {
 export type PronosticoDia = {
   fecha: string; // "AAAA-MM-DD", en hora de México
   lluviaMm: number | null;
+  lluvia3dMm: number | null; // lluvia de este día y los 2 anteriores
   vientoMaxKmh: number | null;
   rachasMaxKmh: number | null;
   olasMaxM: number | null;
@@ -72,7 +78,7 @@ export async function obtenerPronostico(): Promise<PronosticoDia[]> {
         URL_CLIMA,
         PUEBLO,
         ["precipitation_sum", "wind_speed_10m_max", "wind_gusts_10m_max"],
-        { wind_speed_unit: "kmh", precipitation_unit: "mm" },
+        { wind_speed_unit: "kmh", precipitation_unit: "mm", past_days: String(DIAS_PASADOS) },
       ),
     ),
     pedirJson<RespuestaMarina>(construirUrl(URL_MARINA, MAR_ADENTRO, ["wave_height_max"])),
@@ -83,11 +89,17 @@ export async function obtenerPronostico(): Promise<PronosticoDia[]> {
     mar.daily.time.map((fecha, i) => [fecha, mar.daily.wave_height_max[i] ?? null]),
   );
 
-  return clima.daily.time.map((fecha, i) => ({
-    fecha,
-    lluviaMm: clima.daily.precipitation_sum[i] ?? null,
-    vientoMaxKmh: clima.daily.wind_speed_10m_max[i] ?? null,
-    rachasMaxKmh: clima.daily.wind_gusts_10m_max[i] ?? null,
-    olasMaxM: olasPorFecha.get(fecha) ?? null,
-  }));
+  // Se calcula sobre la serie completa (con los días pasados) y luego se descartan esos días.
+  const lluvia3d = lluviaAcumulada(clima.daily.precipitation_sum, DIAS_LLUVIA_ACUMULADA);
+
+  return clima.daily.time
+    .map((fecha, i) => ({
+      fecha,
+      lluviaMm: clima.daily.precipitation_sum[i] ?? null,
+      lluvia3dMm: lluvia3d[i] ?? null,
+      vientoMaxKmh: clima.daily.wind_speed_10m_max[i] ?? null,
+      rachasMaxKmh: clima.daily.wind_gusts_10m_max[i] ?? null,
+      olasMaxM: olasPorFecha.get(fecha) ?? null,
+    }))
+    .slice(DIAS_PASADOS);
 }

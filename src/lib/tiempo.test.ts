@@ -1,11 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  delDia,
   describirAntiguedad,
+  elDia,
   esDeUnDiaAnterior,
   fechaEnMexico,
   fechaLarga,
   nombreDelDia,
+  puedeCambiar,
   sumarDias,
 } from "./tiempo.ts";
 
@@ -57,4 +60,24 @@ test("a partir de 3 horas el pronóstico es viejo", () => {
 
 test("si el reloj del celular va atrasado, no muestra tiempo negativo", () => {
   assert.deepEqual(describirAntiguedad(generado, despues(-10)), { texto: "hace un momento", vieja: false });
+});
+
+test("puedeCambiar: hoy y los 2 días siguientes no; los días 4 y 5 sí", () => {
+  const hoy = "2026-11-29";
+  assert.deepEqual(
+    ["2026-11-29", "2026-11-30", "2026-12-01", "2026-12-02", "2026-12-03"].map((fecha) => puedeCambiar(fecha, hoy)),
+    [false, false, false, true, true],
+  );
+});
+
+test("elDia y delDia arman frases con el día", () => {
+  const hoy = "2026-11-05";
+  assert.deepEqual(
+    ["2026-11-05", "2026-11-06", "2026-11-07"].map((fecha) => [elDia(fecha, hoy), delDia(fecha, hoy)]),
+    [
+      ["hoy", "de hoy"],
+      ["mañana", "de mañana"],
+      ["el sábado 7", "del sábado 7"],
+    ],
+  );
 });
