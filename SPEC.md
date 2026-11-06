@@ -55,7 +55,15 @@ inundaciones), no quienes salen a pescar. Ver "Hallazgos con la comunidad".
   2. Pronósticos archivados (Previous Runs API, desde enero de 2024, sin olas): con
      cuántos días de anticipación habría avisado la app.
   Falta reunir más eventos confirmados en Sánchez Magallanes.
-- Guardar el historial de pronósticos en la base de datos.
+- Guardar el historial de pronósticos en la base de datos: **pospuesto** (6 nov 2026).
+  Open-Meteo ya archiva sus pronósticos (Previous Runs API), así que lo que mostró la app
+  se puede reconstruir cuando haga falta, como en la parte 2 del backtesting, sin
+  mantener una base de datos ni un cron. Por eso PostgreSQL y Prisma siguen sin usarse.
+  Límites de la reconstrucción, por si se retoma: no hay olas archivadas; solo existe
+  desde enero de 2024 y por hora (los días se arman sumando horas); `best_match` cambia
+  de modelos con el tiempo; y no reproduce la hora exacta en que la página se regeneró.
+  Si se necesitara lo que la gente vio exactamente, el diseño propuesto era que la
+  página incruste sus datos y un cron cada 30 minutos los guarde.
 - Publicación automática en Facebook (hoy se publica a mano).
 - Mensaje para WhatsApp.
 - Vista previa al compartir con el pronóstico: URLs fijas por alerta (una por cada
