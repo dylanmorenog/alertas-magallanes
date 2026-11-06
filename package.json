@@ -14,7 +14,8 @@
     "mensaje": "node scripts/mensaje.ts",
     "check": "tsc --noEmit",
     "test": "node --test",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "backtesting": "node scripts/backtesting.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0",

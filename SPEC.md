@@ -48,6 +48,11 @@ inundaciones), no quienes salen a pescar. Ver "Hallazgos con la comunidad".
 ## Más adelante
 - Validar los umbrales de lluvia (sobre todo los de 3 días) con la API
   histórica de Open-Meteo contra fechas de inundaciones reales del pueblo.
+  En curso: `npm run backtesting` evalúa los umbrales contra los eventos de
+  `src/config/eventos.ts` (ERA5, 1991–2025) y guarda `informes/backtesting.md`.
+  Falta reunir eventos confirmados en Sánchez Magallanes.
+- Medir la anticipación real del pronóstico (no solo del tiempo observado) con la
+  Previous Runs API de Open-Meteo, para eventos de 2024 en adelante.
 - Guardar el historial de pronósticos en la base de datos.
 - Publicación automática en Facebook (hoy se publica a mano).
 - Mensaje para WhatsApp.

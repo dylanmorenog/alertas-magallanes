@@ -12,11 +12,12 @@ const DIAS = 5; // hoy y los 4 siguientes
 const DIAS_PASADOS = DIAS_LLUVIA_ACUMULADA - 1;
 const TIEMPO_MAXIMO_MS = 10_000;
 
-type Coordenadas = { latitud: number; longitud: number };
+export type Coordenadas = { latitud: number; longitud: number };
 
 // El pueblo (en tierra) y un punto mar adentro, porque el oleaje solo existe en el mar.
-const PUEBLO: Coordenadas = { latitud: 18.29, longitud: -93.87 };
-const MAR_ADENTRO: Coordenadas = { latitud: 18.35, longitud: -93.87 };
+// Exportados para que el backtesting use exactamente los mismos puntos.
+export const PUEBLO: Coordenadas = { latitud: 18.29, longitud: -93.87 };
+export const MAR_ADENTRO: Coordenadas = { latitud: 18.35, longitud: -93.87 };
 
 // Forma de la respuesta de cada API (solo los campos que pedimos).
 // Open-Meteo devuelve null cuando no tiene dato para un día.
