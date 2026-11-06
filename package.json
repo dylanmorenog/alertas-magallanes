@@ -8,6 +8,7 @@
     "build": "npm run check && next build",
     "start": "next start",
     "pronostico": "node scripts/pronostico.ts",
+    "mensaje": "node scripts/mensaje.ts",
     "check": "tsc --noEmit",
     "test": "node --test",
     "e2e": "playwright test"

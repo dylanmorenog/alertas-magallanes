@@ -94,6 +94,8 @@ export const TEXTO_EN_PRUEBA = "umbral en prueba";
 export const NOTA_EN_PRUEBA = (detalle: string) =>
   `Umbrales en prueba: ${detalle}. Se ajustarán con datos de inundaciones reales del pueblo.`;
 
+const PUEDE_CAMBIAR = "(puede cambiar)";
+
 // Respuesta grande a la PREGUNTA, para los próximos días. El título expresa gravedad,
 // no certeza; "posible" solo cuando lo peor está en los días que pueden cambiar.
 export const RESPUESTA_GENERAL = {
@@ -106,7 +108,11 @@ export const RESPUESTA_GENERAL = {
   sinDatos: "NO SABEMOS",
   sinAlertas: (variables: string, dias: number) => `Sin alertas de ${variables} en los próximos ${dias} días.`,
   sinDatosDetalle: "No hay datos del pronóstico; revisa los avisos de Protección Civil.",
-  puedeCambiar: "(puede cambiar)",
+  puedeCambiar: PUEDE_CAMBIAR,
+  // Cuando los días que pueden cambiar también traen alerta, pero no peor:
+  // "seguir" si empieza justo al día siguiente; "volver" si hay un día tranquilo de por medio.
+  podriaSeguir: (dias: string) => `Podría seguir ${dias} ${PUEDE_CAMBIAR}.`,
+  podriaVolver: (dias: string) => `Podría volver ${dias} ${PUEDE_CAMBIAR}.`,
 };
 
 // Etiqueta de cada día en la lista de próximos días.
@@ -145,7 +151,22 @@ export const QUE_HACER = {
   ],
 };
 
-export const NOTA_OLAS = "Olas: pronóstico en el mar, frente a la costa. No incluye la laguna.";
+// Mensaje para Facebook. Solo se publica cuando hay alerta, para que la gente no se
+// acostumbre a leer avisos de buen tiempo y deje de leer los de mal tiempo.
+export const MENSAJE = {
+  lugar: "a Magallanes",
+  fecha: (momento: string) => `Pronóstico del ${momento}.`,
+  diaPorDia: "Día por día:",
+  queHacer: "Qué hacer:",
+  emergencias: "Emergencias:",
+  enlace: "Pronóstico actualizado:",
+  enlacePendiente: "[ENLACE PENDIENTE: no publicar sin el enlace]",
+  // Distinto del AVISO_LEGAL de la página: en una publicación, "esta página" no aplica.
+  avisoLegal: "Informativo; no sustituye los avisos de Protección Civil ni de Capitanía de Puerto.",
+  atribucion: "Datos: Open-Meteo.com",
+};
+
+export const NOTA_OLAS ="Olas: pronóstico en el mar, frente a la costa. No incluye la laguna.";
 
 export const AVISO_LEGAL =
   "Esta página es informativa y no sustituye los avisos de Protección Civil ni de Capitanía de Puerto.";

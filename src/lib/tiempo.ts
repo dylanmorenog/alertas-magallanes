@@ -83,7 +83,7 @@ export function fechaLarga(fecha: string): string {
     .replace(",", "");
 }
 
-// "jueves 5 de noviembre, 14:30" en hora de México.
+// "jueves 5 de noviembre, 14:30" en hora de México (sin la coma que Intl pone tras el día).
 export function momentoLargo(instante: Date): string {
   return new Intl.DateTimeFormat("es-MX", {
     timeZone: ZONA_HORARIA,
@@ -93,7 +93,9 @@ export function momentoLargo(instante: Date): string {
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
-  }).format(instante);
+  })
+    .format(instante)
+    .replace(",", "");
 }
 
 // ¿La página se generó un día anterior al de hoy? Pasa al abrir sin señal una copia guardada.

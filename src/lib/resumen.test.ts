@@ -86,10 +86,31 @@ test("amarillo seguro y rojo posible: el título lo pone lo seguro, lo peor se m
   assert.equal(r.detalle, "Viento fuerte mañana. Posible lluvia torrencial el lunes 9 (puede cambiar).");
 });
 
-test("rojo seguro y amarillo lejano: no se menciona lo lejano porque no es peor", () => {
+test("alerta que continúa al día siguiente en los días lejanos → podría seguir", () => {
+  const r = responder({ 2: { lluviaMm: 120 }, 3: { lluvia3dMm: 150 } });
+  assert.equal(r.titulo, "SÍ, VIENE MAL TIEMPO FUERTE");
+  assert.equal(r.detalle, "Lluvia intensa el sábado 7. Podría seguir el domingo 8 (puede cambiar).");
+});
+
+test("alerta lejana con un día tranquilo de por medio → podría volver, no seguir", () => {
   const r = responder({ 0: { rachasMaxKmh: 75 }, 3: { lluviaMm: 60 } });
   assert.equal(r.titulo, "SÍ, VIENE MAL TIEMPO FUERTE");
-  assert.doesNotMatch(r.detalle, /[Pp]osible|puede cambiar/);
+  assert.equal(r.detalle, "Viento fuerte hoy. Podría volver el domingo 8 (puede cambiar).");
+});
+
+test("podría seguir varios días", () => {
+  const r = responder({ 2: { rachasMaxKmh: 55 }, 3: { rachasMaxKmh: 55 }, 4: { rachasMaxKmh: 52 } });
+  assert.equal(r.detalle, "Viento fuerte el sábado 7. Podría seguir el domingo 8 y el lunes 9 (puede cambiar).");
+});
+
+test("lo lejano peor incluye todos sus días con alerta, desde el primero", () => {
+  const r = responder({ 1: { rachasMaxKmh: 55 }, 3: { rachasMaxKmh: 55 }, 4: { lluviaMm: 160 } });
+  assert.equal(r.titulo, "SÍ, VIENE MAL TIEMPO");
+  assert.equal(
+    r.detalle,
+    "Viento fuerte mañana. Posible lluvia torrencial y viento fuerte desde el domingo 8; " +
+      "lo más fuerte el lunes 9 (puede cambiar).",
+  );
 });
 
 test("con alerta, los datos faltantes van en la nota", () => {

@@ -29,7 +29,9 @@ inundaciones), no quienes salen a pescar. Ver "Hallazgos con la comunidad".
    - Las olas son un dato secundario: mueven el color, pero una opción de la
      configuración permite desactivarlo.
 4. Mensaje listo para copiar y publicar a mano en Facebook. La página es el
-   enlace del mensaje y debe verse bien al compartirse.
+   enlace del mensaje y debe verse bien al compartirse. Se publica solo cuando
+   hay alerta (amarillo o rojo), para que la gente no se acostumbre a leer
+   avisos de buen tiempo y deje de leer los de mal tiempo.
 5. Página web en español, muy ligera (que cargue con mala señal), instalable
    como PWA, que conteste en grande "¿Viene mal tiempo a Magallanes?" para los
    próximos 5 días, explicando por qué en lenguaje sencillo. Los días 4 y 5 se

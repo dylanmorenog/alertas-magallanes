@@ -5,7 +5,7 @@
 import type { PronosticoDia } from "./open-meteo.ts";
 import { evaluarDia, VARIABLES, type Evaluacion, type Nivel, type Reglas } from "./semaforo.ts";
 import { categoriaLluvia } from "./lluvia.ts";
-import { elDia, puedeCambiar } from "./tiempo.ts";
+import { diasEntre, elDia, puedeCambiar } from "./tiempo.ts";
 import { lista, listaDeFaltantes, type Tono } from "./respuesta.ts";
 import {
   FALTAN_DATOS_PARA,
@@ -78,6 +78,19 @@ function describirAlerta(dias: DiaEvaluado[], hoy: string, posible: boolean): st
   return pico.puedeCambiar ? `${texto} ${RESPUESTA_GENERAL.puedeCambiar}.` : `${texto}.`;
 }
 
+// Alerta en los días que pueden cambiar, igual o menor que la de los días confiables.
+// "Podría seguir el domingo 8 (puede cambiar)." si empieza justo después de la última
+// alerta confiable; "Podría volver el lunes 9 (puede cambiar)." si hay un día sin alerta
+// de por medio (decir "seguir" sería falso).
+function describirContinuacion(confiables: DiaEvaluado[], lejanos: DiaEvaluado[], hoy: string): string {
+  const ultimo = confiables[confiables.length - 1];
+  const primero = lejanos[0];
+  const cuando = lista.format(lejanos.map(({ dia }) => elDia(dia.fecha, hoy)));
+  return diasEntre(ultimo.dia.fecha, primero.dia.fecha) === 1
+    ? RESPUESTA_GENERAL.podriaSeguir(cuando)
+    : RESPUESTA_GENERAL.podriaVolver(cuando);
+}
+
 // "Faltan datos de olas para el sábado 8 y el domingo 9. No hay datos para el domingo 9."
 function describirFaltantes(dias: DiaEvaluado[], hoy: string): string | null {
   const sinDatos: string[] = [];
@@ -118,12 +131,15 @@ export function respuestaGeneral(dias: DiaEvaluado[], hoy: string, reglas: Regla
   const nivelLejano = peorNivel(alertaLejana);
 
   // Hay alerta en los días confiables: el título lo pone lo que es más seguro.
-  // Si los días que pueden cambiar traen algo peor, se menciona como "posible".
+  // Si los días que pueden cambiar también traen alerta, se menciona: como "posible"
+  // si es peor, o como "podría seguir / volver" si no lo es.
   if (nivelConfiable !== null) {
     let detalle = describirAlerta(alertaConfiable, hoy, false);
-    if (nivelLejano !== null && GRAVEDAD.indexOf(nivelLejano) > GRAVEDAD.indexOf(nivelConfiable)) {
-      const peores = alertaLejana.filter(({ evaluacion }) => evaluacion.nivel === nivelLejano);
-      detalle += ` ${describirAlerta(peores, hoy, true)}`;
+    if (nivelLejano !== null) {
+      detalle +=
+        GRAVEDAD.indexOf(nivelLejano) > GRAVEDAD.indexOf(nivelConfiable)
+          ? ` ${describirAlerta(alertaLejana, hoy, true)}`
+          : ` ${describirContinuacion(alertaConfiable, alertaLejana, hoy)}`;
     }
     return { tono: nivelConfiable, titulo: RESPUESTA_GENERAL[nivelConfiable], detalle, nota: faltantes };
   }
