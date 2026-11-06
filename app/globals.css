@@ -1,0 +1,183 @@
+/* Pensado para leerse en un celular bajo el sol: letra grande, alto contraste,
+   fuentes del sistema (nada que descargar). */
+
+:root {
+  color-scheme: light;
+  --texto: #1a1a1a;
+  --suave: #555;
+  --fondo: #ffffff;
+  --azul: #0b3d5c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+h1 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  color: var(--azul);
+  margin: 0.5rem 0 1rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+  margin: 1.5rem 0 0.5rem;
+}
+
+a {
+  color: var(--azul);
+}
+
+/* Tarjeta de un día */
+
+.dia {
+  border: 3px solid;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.dia p {
+  margin: 0.25rem 0;
+}
+
+.nombre-dia {
+  font-weight: 600;
+}
+
+.titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.principal .titulo {
+  font-size: 3rem;
+}
+
+.icono {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 1.2em;
+  height: 1.2em;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.8em;
+}
+
+.nota {
+  font-weight: 600;
+}
+
+.razones {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+/* Tonos: fondo claro, borde fuerte y texto oscuro para buen contraste */
+
+.tono-verde {
+  background: #e6f4ea;
+  border-color: #1e7b34;
+}
+.tono-verde .icono {
+  background: #1e7b34;
+}
+
+.tono-amarillo {
+  background: #fff4cc;
+  border-color: #b38600;
+}
+.tono-amarillo .icono {
+  background: #b38600;
+}
+
+.tono-rojo {
+  background: #fde7e7;
+  border-color: #b3261e;
+}
+.tono-rojo .icono {
+  background: #b3261e;
+}
+
+.tono-gris {
+  background: #eeeeee;
+  border-color: #5f6368;
+}
+.tono-gris .icono {
+  background: #5f6368;
+}
+
+/* Resto de secciones */
+
+.actualizado {
+  color: var(--suave);
+  font-size: 1rem;
+  margin: 0.75rem 0;
+}
+
+.actualizado p {
+  margin: 0;
+}
+
+.aviso-viejo {
+  margin-top: 0.5rem !important;
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid #b3261e;
+  background: #fde7e7;
+  color: var(--texto);
+  font-weight: 600;
+}
+
+.que-hacer {
+  border: 3px solid var(--azul);
+  border-radius: 0.75rem;
+  padding: 0 1rem 0.5rem;
+}
+
+.proximos {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 36rem) {
+  .proximos {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.contactos ul {
+  padding-left: 1.25rem;
+}
+
+.contactos a {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #ddd;
+  color: var(--suave);
+  font-size: 0.95rem;
+}
