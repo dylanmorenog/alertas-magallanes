@@ -19,18 +19,33 @@ import {
   evaluarEvento,
   evaluarSerie,
   finDelEvento,
+  reglasConRojo,
   reglasSinOlas,
   simularApp,
   type ResultadoApp,
   type ResultadoHistorico,
 } from "../src/lib/backtesting.ts";
 import { validarEventos, type Evento } from "../src/lib/eventos.ts";
+import type { PronosticoDia } from "../src/lib/open-meteo.ts";
 import { VARIABLES, type Nivel } from "../src/lib/semaforo.ts";
 import { fechaEnMexico, sumarDias } from "../src/lib/tiempo.ts";
 import { NOMBRES, UMBRALES } from "../src/config/reglas.ts";
 
 const ARCHIVO_EVENTOS = "datos/eventos.json";
 const ARCHIVO_INFORME = "informes/backtesting.md";
+// Umbrales rojos por olas (m) que se comparan en la tabla de sensibilidad.
+const SENSIBILIDAD_ROJO_OLAS = [2.5, 3, 3.5, 4];
+
+// Advertencias que van junto a la tabla de sensibilidad y al final del informe.
+// Con el número real de eventos, para que la frase siga siendo cierta cuando se agreguen más.
+const advertenciaSobreajuste = (eventos: number) =>
+  `**Riesgo de sobreajuste:** con solo ${eventos} evento${eventos === 1 ? "" : "s"}, un umbral que ` +
+  "\"los detecta todos\" puede fallar en el siguiente. Esta tabla sirve para ver tendencias, no para " +
+  "elegir un umbral; hacen falta más eventos (y también fechas SIN daños) antes de cambiar uno.";
+const ADVERTENCIA_MEDICIONES =
+  "**Nada de esto es una medición en Magallanes:** ERA5 es un reanálisis (un modelo ajustado a " +
+  "observaciones, en celdas de ~25 km) y el pronóstico es otro modelo. Ninguno es un anemómetro en el " +
+  "pueblo, y las olas también son de modelo, en una celda mar adentro.";
 
 // Por defecto, los últimos 5 años COMPLETOS: un año a medias no se puede comparar (los
 // nortes se concentran entre octubre y marzo).
@@ -136,13 +151,28 @@ try {
 
   // Parte 1: eventos. Se descargan aparte: pueden caer fuera de los años del conteo.
   const historicos: ResultadoHistorico[] = [];
+  const diasPorEvento: PronosticoDia[][] = [];
   for (const evento of eventos) {
     const { dias } = await obtenerHistorico(
       sumarDias(evento.fecha, -DIAS_ANTES_DETALLE),
       sumarDias(finDelEvento(evento), 1),
     );
+    diasPorEvento.push(dias);
     historicos.push(evaluarEvento(evento, evaluarSerie(dias), evaluarSerie(dias, reglasSinOlas())));
   }
+
+  // Sensibilidad: el mismo cálculo con otros umbrales rojos por olas. No cambia UMBRALES.
+  const sensibilidad = SENSIBILIDAD_ROJO_OLAS.map((rojo) => {
+    const reglas = reglasConRojo(UMBRALES, "olas", rojo);
+    const conteo = alertasPorAno(evaluarSerie(historico.dias, reglas), desdeAno, hastaAno);
+    const media = (f: (a: (typeof conteo)[number]) => number) =>
+      numero.format(conteo.reduce((s, a) => s + f(a), 0) / conteo.length);
+    const niveles = eventos.map((evento, i) => {
+      const s = evaluarSerie(diasPorEvento[i], reglas);
+      return evaluarEvento(evento, s, s).nivel;
+    });
+    return { rojo, alertas: media((a) => a.alertas), rojas: media((a) => a.alertasRojas), niveles };
+  });
 
   // Parte 2: lo que habría mostrado la app. La lluvia de 3 días necesita 2 días antes.
   const apps: (ResultadoApp | null)[] = [];
@@ -195,6 +225,24 @@ try {
       `${promedio((i) => anualSinOlas[i].alertas)} | ${promedio((i) => anual[i].diasAmarillo)} | ` +
       `${promedio((i) => anual[i].diasRojo)} | ${promedio((i) => anual[i].diasSinDatos)} |`,
     "",
+    `## Sensibilidad: rojo por olas (${desdeAno}–${hastaAno})`,
+    "",
+    `Mismo cálculo de la parte 1 cambiando solo el umbral rojo por olas; el amarillo sigue en ` +
+      `${numero.format(UMBRALES.olas.amarillo)} m, así que el total de alertas apenas cambia: lo que cambia es ` +
+      "cuántas llegan a rojo. Para cada evento, el peor nivel en sus días. Los umbrales de la app no cambiaron.",
+    "",
+    `| Rojo por olas desde | Alertas por año | De ellas, rojas | ${eventos.map((e) => e.fecha).join(" | ")} |`,
+    `|---|---:|---:|${eventos.map(() => "---").join("|")}|`,
+    ...sensibilidad.map(
+      (s) =>
+        `| ${numero.format(s.rojo)} m${s.rojo === UMBRALES.olas.rojo ? " (actual)" : ""} | ${s.alertas} | ${s.rojas} | ` +
+        `${s.niveles.map(nivel).join(" | ")} |`,
+    ),
+    "",
+    advertenciaSobreajuste(eventos.length),
+    "",
+    ADVERTENCIA_MEDICIONES,
+    "",
     "## Parte 2: ¿con cuánta anticipación habría avisado la app?",
     "",
     "Con el pronóstico que existía cada día (Previous Runs API, modelo `best_match` como la app" +
@@ -205,6 +253,8 @@ try {
     ...eventos.flatMap((evento, i) => [seccionApp(evento, apps[i]), ""]),
     "## Cómo leer esto",
     "",
+    `- ${advertenciaSobreajuste(eventos.length)}`,
+    `- ${ADVERTENCIA_MEDICIONES}`,
     "- **Parte 1** usa reanálisis: lo que pasó, reconstruido por un modelo. La celda de ERA5 mide ~25 km " +
       "y suaviza los aguaceros locales, así que las alertas por año tienden a quedarse cortas.",
     "- **Parte 2 va sin olas:** no existen pronósticos de oleaje archivados. Si un evento fue por el mar, " +

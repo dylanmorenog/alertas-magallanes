@@ -9,7 +9,7 @@
 
 import type { PronosticoDia } from "./open-meteo.ts";
 import type { Previas } from "./open-meteo-previas.ts";
-import { evaluarDia, type Nivel, type Razon, type Reglas } from "./semaforo.ts";
+import { evaluarDia, type Nivel, type Razon, type Reglas, type Variable } from "./semaforo.ts";
 import { diasEntre, puedeCambiar, sumarDias } from "./tiempo.ts";
 import type { Evento } from "./eventos.ts";
 import { DIAS_LLUVIA_ACUMULADA, UMBRALES } from "../config/reglas.ts";
@@ -52,6 +52,15 @@ export function evaluarSerie(dias: PronosticoDia[], reglas: Reglas = UMBRALES): 
 // Las mismas reglas, pero sin que las olas muevan el color.
 export function reglasSinOlas(reglas: Reglas = UMBRALES): Reglas {
   return { ...reglas, olas: { ...reglas.olas, mueveElColor: false } };
+}
+
+// Las mismas reglas con otro umbral rojo para una variable: para la tabla de sensibilidad.
+// No cambia los umbrales de la app (UMBRALES), solo devuelve una copia.
+export function reglasConRojo(reglas: Reglas, variable: Variable, rojo: number): Reglas {
+  if (rojo < reglas[variable].amarillo) {
+    throw new Error(`El rojo (${rojo}) no puede ser menor que el amarillo (${reglas[variable].amarillo}).`);
+  }
+  return { ...reglas, [variable]: { ...reglas[variable], rojo } };
 }
 
 // ---------------------------------------------------------------------------------------

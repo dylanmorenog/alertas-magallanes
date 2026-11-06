@@ -5,6 +5,7 @@ import {
   episodios,
   evaluarEvento,
   evaluarSerie,
+  reglasConRojo,
   reglasSinOlas,
   simularApp,
 } from "./backtesting.ts";
@@ -13,6 +14,7 @@ import { diariosPorAnticipacion, type Previas, type PronosticoDiario } from "./o
 import type { PronosticoDia } from "./open-meteo.ts";
 import { sumarDias } from "./tiempo.ts";
 import type { Evento } from "./eventos.ts";
+import { UMBRALES } from "../config/reglas.ts";
 
 // Serie de días tranquilos desde `inicio`; `cambios[i]` modifica el día i.
 function serie(inicio: string, n: number, cambios: Record<number, Partial<PronosticoDia>> = {}): PronosticoDia[] {
@@ -88,6 +90,15 @@ test("evento: el peor nivel de sus días, qué lo activó, y cómo queda sin ola
   assert.equal(r.nivelSinOlas, "rojo"); // las rachas bastan
   // Detalle: de 3 días antes al día siguiente del fin.
   assert.deepEqual([r.detalle[0].dia.fecha, r.detalle.at(-1)?.dia.fecha], ["2026-10-14", "2026-10-19"]);
+});
+
+test("sensibilidad: subir el rojo por olas convierte ese rojo en amarillo, sin tocar UMBRALES", () => {
+  const dias = serie("2020-01-01", 3, { 1: { olasMaxM: 3.2 } });
+  const conRojo = (rojo: number) => episodios(evaluarSerie(dias, reglasConRojo(UMBRALES, "olas", rojo)));
+  assert.deepEqual(conRojo(2.5).map((e) => e.nivel), ["rojo"]);
+  assert.deepEqual(conRojo(3.5).map((e) => e.nivel), ["amarillo"]); // la alerta sigue: 3.2 ≥ 1.5
+  assert.equal(UMBRALES.olas.rojo, 2.5); // la configuración de la app no cambió
+  assert.throws(() => reglasConRojo(UMBRALES, "olas", 1), /no puede ser menor que el amarillo/);
 });
 
 test("evento: solo olas → sin olas queda en verde", () => {

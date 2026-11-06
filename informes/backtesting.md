@@ -61,6 +61,21 @@ Una alerta = días seguidos con amarillo o rojo (una sola serie de publicaciones
 | 2025 | 17 | 9 | 10 | 31 | 20 | 0 |
 | **Promedio** | **19.4** | 9.2 | 12.2 | 34.6 | 19.2 | 0 |
 
+## Sensibilidad: rojo por olas (2021–2025)
+
+Mismo cálculo de la parte 1 cambiando solo el umbral rojo por olas; el amarillo sigue en 1.5 m, así que el total de alertas apenas cambia: lo que cambia es cuántas llegan a rojo. Para cada evento, el peor nivel en sus días. Los umbrales de la app no cambiaron.
+
+| Rojo por olas desde | Alertas por año | De ellas, rojas | 2026-10-17 | 2019-11-13 |
+|---|---:|---:|---|---|
+| 2.5 m (actual) | 19.4 | 9.2 | ROJO | ROJO |
+| 3 m | 19.4 | 6.4 | ROJO | ROJO |
+| 3.5 m | 19.4 | 4.2 | ROJO | ROJO |
+| 4 m | 19.4 | 2.8 | ROJO | ROJO |
+
+**Riesgo de sobreajuste:** con solo 2 eventos, un umbral que "los detecta todos" puede fallar en el siguiente. Esta tabla sirve para ver tendencias, no para elegir un umbral; hacen falta más eventos (y también fechas SIN daños) antes de cambiar uno.
+
+**Nada de esto es una medición en Magallanes:** ERA5 es un reanálisis (un modelo ajustado a observaciones, en celdas de ~25 km) y el pronóstico es otro modelo. Ninguno es un anemómetro en el pueblo, y las olas también son de modelo, en una celda mar adentro.
+
 ## Parte 2: ¿con cuánta anticipación habría avisado la app?
 
 Con el pronóstico que existía cada día (Previous Runs API, modelo `best_match` como la app; celda 18.242529, -93.863434). La app muestra hoy y los 4 días siguientes, así que el máximo posible es 4 días antes. Los días 4 y 5 de la app (a 3 y 4 días) "pueden cambiar".
@@ -92,6 +107,8 @@ Qué mostraba la app cada día (filas) para los días del evento (columnas), sin
 
 ## Cómo leer esto
 
+- **Riesgo de sobreajuste:** con solo 2 eventos, un umbral que "los detecta todos" puede fallar en el siguiente. Esta tabla sirve para ver tendencias, no para elegir un umbral; hacen falta más eventos (y también fechas SIN daños) antes de cambiar uno.
+- **Nada de esto es una medición en Magallanes:** ERA5 es un reanálisis (un modelo ajustado a observaciones, en celdas de ~25 km) y el pronóstico es otro modelo. Ninguno es un anemómetro en el pueblo, y las olas también son de modelo, en una celda mar adentro.
 - **Parte 1** usa reanálisis: lo que pasó, reconstruido por un modelo. La celda de ERA5 mide ~25 km y suaviza los aguaceros locales, así que las alertas por año tienden a quedarse cortas.
 - **Parte 2 va sin olas:** no existen pronósticos de oleaje archivados. Si un evento fue por el mar, la parte 2 subestima el aviso.
 - **Parte 2 arma cada día sumando las 24 horas** (la API no da datos diarios). "A N días" usa el valor pronosticado N×24 h antes de cada hora: es una aproximación del pronóstico que la app tenía ese día.
