@@ -9,6 +9,11 @@ import { defineConfig, devices } from "@playwright/test";
 const PUERTO = 3200;
 const BASE_URL = process.env.BASE_URL;
 
+// Se construye y se levanta con un escenario de ejemplo activado a propósito: en producción
+// debe ignorarse. Así las pruebas confirman que, aunque alguien ponga la variable en
+// Railway, el sitio muestra el pronóstico real (ver e2e/pagina.spec.ts).
+const ESCENARIO = "PRONOSTICO_DE_EJEMPLO=rojo";
+
 export default defineConfig({
   testDir: "e2e",
   use: {
@@ -18,7 +23,7 @@ export default defineConfig({
   webServer: BASE_URL
     ? undefined
     : {
-        command: `npm run build && npx next start -p ${PUERTO}`,
+        command: `${ESCENARIO} npm run build && ${ESCENARIO} npx next start -p ${PUERTO}`,
         url: `http://localhost:${PUERTO}`,
         timeout: 180_000,
         reuseExistingServer: false,

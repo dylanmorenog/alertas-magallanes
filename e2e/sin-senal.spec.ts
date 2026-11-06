@@ -3,6 +3,7 @@
 // valores concretos del pronóstico, solo de cómo se comporta la página.
 
 import { expect, test, type Page } from "@playwright/test";
+import { PREGUNTA } from "../src/config/reglas.ts";
 
 // Abre la página con señal y espera a que el service worker termine de guardar todo.
 async function visitarConSenal(page: Page) {
@@ -18,7 +19,7 @@ test("sin señal, muestra el pronóstico guardado", async ({ page, context }) =>
   await context.setOffline(true);
   await page.reload();
 
-  await expect(page.getByRole("heading", { name: "¿Se puede salir a la laguna hoy?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: PREGUNTA })).toBeVisible();
   await expect(page.getByText(/^Actualizado:/)).toBeVisible();
   await expect(page.getByText(/no de hoy/)).toHaveCount(0);
 });
@@ -53,7 +54,7 @@ test("en la segunda visita solo el HTML viaja por la red", async ({ page, contex
   });
 
   await page.reload();
-  await expect(page.getByRole("heading", { name: "¿Se puede salir a la laguna hoy?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: PREGUNTA })).toBeVisible();
 
   expect(aLaRed).toEqual(["/"]);
 });

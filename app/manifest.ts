@@ -2,12 +2,13 @@
 // Next lo sirve en /manifest.webmanifest.
 
 import type { MetadataRoute } from "next";
+import { DESCRIPCION_SITIO } from "../src/config/reglas.ts";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Alertas Magallanes",
     short_name: "Magallanes",
-    description: "Semáforo de viento, olas y lluvia para Sánchez Magallanes, Tabasco.",
+    description: DESCRIPCION_SITIO,
     lang: "es",
     start_url: "/",
     scope: "/",

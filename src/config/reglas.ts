@@ -7,6 +7,23 @@ import type { Reglas, Variable } from "../lib/semaforo.ts";
 
 export const PREGUNTA = "¿Viene mal tiempo a Magallanes?";
 
+// Descripción del sitio: pestaña del navegador, app instalada y, en el paso 5b, la vista
+// previa al compartir. No menciona ningún pronóstico para que nunca quede desactualizada.
+export const DESCRIPCION_SITIO =
+  "Pronóstico de lluvia y viento de 5 días para Sánchez Magallanes, Tabasco, " +
+  "para preparar tu casa a tiempo.";
+
+// Encabezados y etiquetas de la página.
+export const PAGINA = {
+  actualizado: (momento: string) => `Actualizado: ${momento}.`,
+  queHacer: "Qué hacer",
+  diaPorDia: "Día por día",
+  puedeCambiar: "puede cambiar",
+  emergencias: "Emergencias",
+  // Franja fija mientras se usan datos de ejemplo (solo en desarrollo).
+  franjaEjemplo: (escenario: string) => `DATOS DE EJEMPLO («${escenario}»). No es un pronóstico real.`,
+};
+
 // Días que suma la lluvia acumulada (el día y los anteriores). Candidato a ajustarse
 // cuando se valide contra fechas de inundaciones reales.
 export const DIAS_LLUVIA_ACUMULADA = 3;

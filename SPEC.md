@@ -49,6 +49,10 @@ inundaciones), no quienes salen a pescar. Ver "Hallazgos con la comunidad".
 - Guardar el historial de pronósticos en la base de datos.
 - Publicación automática en Facebook (hoy se publica a mano).
 - Mensaje para WhatsApp.
+- Vista previa al compartir con el pronóstico: URLs fijas por alerta (una por cada
+  alerta publicada) con imagen dinámica, cuando exista el historial. Mientras tanto la
+  vista previa es estática (nombre y para qué sirve, sin pronóstico), porque Facebook
+  guarda la vista previa en caché y una dinámica podría mostrar un color viejo.
 
 ## Notas
 - Los modelos de oleaje no cubren la laguna: las olas del Golfo son una señal

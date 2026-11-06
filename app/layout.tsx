@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { RegistrarServiceWorker } from "./registrar-sw.tsx";
+import { DESCRIPCION_SITIO, PREGUNTA } from "../src/config/reglas.ts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "¿Se puede salir hoy? · Alertas Magallanes",
-  description: "Semáforo de viento, olas y lluvia para Sánchez Magallanes, Tabasco.",
+  title: `${PREGUNTA} · Alertas Magallanes`,
+  description: DESCRIPCION_SITIO,
 };
 
 export const viewport: Viewport = {
