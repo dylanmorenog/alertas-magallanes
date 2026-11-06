@@ -32,3 +32,15 @@ Next.js con TypeScript, PostgreSQL con Prisma, desplegado en Railway.
 - Los modelos de oleaje no cubren la laguna: las olas del Golfo son una señal
   indirecta. Validar con pescadores si salen al Golfo, a la laguna o a ambos.
 - Open-Meteo exige atribución ("Datos: Open-Meteo.com").
+## Hallazgos con la comunidad (5 nov 2026)
+- Quienes pescan en la laguna no necesitan la app: leen el clima mejor que el modelo.
+- Usuarios principales: familias y vecinos que no pescan (techos, inundaciones, escuela).
+- Hoy la gente se entera del mal tiempo un día antes como máximo.
+- Se enteran por Facebook y en persona.
+
+## Cambios de dirección
+- Pregunta principal: "¿Viene mal tiempo a Magallanes?" (antes: salir a la laguna).
+- Pronóstico de 5 días; días 4 y 5 marcados como "puede cambiar".
+- Prioridad: mensaje listo para Facebook. La página es el enlace del mensaje.
+- Agregar lluvia acumulada de 3 días (inundaciones). Olas como dato secundario.
+- Lista de qué hacer orientada a hogares. No predecir suspensión de clases.

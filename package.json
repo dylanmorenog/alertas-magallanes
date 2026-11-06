@@ -9,9 +9,11 @@
     "start": "next start",
     "pronostico": "node scripts/pronostico.ts",
     "check": "tsc --noEmit",
-    "test": "node --test"
+    "test": "node --test",
+    "e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

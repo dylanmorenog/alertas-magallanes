@@ -72,6 +72,14 @@ export const AVISO_LEGAL =
 // Normalmente la página tiene menos de 1 hora (se regenera cada 30 minutos).
 export const HORAS_PRONOSTICO_VIEJO = 3;
 
+// Al abrir sin señal una copia guardada de otro día. `fecha` ya viene formateada.
+export const AVISO_DIA_ANTERIOR = (fecha: string) =>
+  `Este pronóstico es del ${fecha}, no de hoy. No sabemos cómo están las condiciones hoy: ` +
+  "vuelve a cargar la página cuando tengas señal.";
+
+export const INSTRUCCIONES_INSTALAR =
+  "Instálala en tu celular: en Android, menú ⋮ → Instalar app. En iPhone, Compartir → Agregar a inicio.";
+
 export const AVISO_PRONOSTICO_VIEJO =
   `Este pronóstico tiene más de ${HORAS_PRONOSTICO_VIEJO} horas y puede haber cambiado. ` +
   "Vuelve a cargar la página cuando tengas señal.";

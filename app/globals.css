@@ -148,6 +148,16 @@ a {
   font-weight: 600;
 }
 
+.aviso-dia-anterior {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: #b3261e;
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
 .que-hacer {
   border: 3px solid var(--azul);
   border-radius: 0.75rem;

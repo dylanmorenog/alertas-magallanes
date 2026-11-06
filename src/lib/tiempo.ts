@@ -67,6 +67,12 @@ export function momentoLargo(instante: Date): string {
   }).format(instante);
 }
 
+// ¿La página se generó un día anterior al de hoy? Pasa al abrir sin señal una copia guardada.
+// Si el reloj del celular va atrasado (su "hoy" es anterior al de la página), no avisamos.
+export function esDeUnDiaAnterior(hoyDeLaPagina: string, ahora: Date): boolean {
+  return fechaEnMexico(ahora) > hoyDeLaPagina;
+}
+
 const relativo = new Intl.RelativeTimeFormat("es", { numeric: "always" });
 
 // Cuánto tiempo pasó desde que se generó el pronóstico, y si ya es viejo.

@@ -5,9 +5,9 @@ import { obtenerPronostico, type PronosticoDia } from "../src/lib/open-meteo.ts"
 import { evaluarDia, type Evaluacion } from "../src/lib/semaforo.ts";
 import { explicarRazon, respuestaDelDia, type Respuesta, type Tono } from "../src/lib/respuesta.ts";
 import { fechaEnMexico, fechaLarga, momentoLargo, nombreDelDia } from "../src/lib/tiempo.ts";
-import { AVISO_LEGAL, NOTA_OLAS, QUE_HACER } from "../src/config/reglas.ts";
+import { AVISO_LEGAL, INSTRUCCIONES_INSTALAR, NOTA_OLAS, QUE_HACER } from "../src/config/reglas.ts";
 import { CONTACTOS } from "../src/config/contactos.ts";
-import { Antiguedad } from "./antiguedad.tsx";
+import { Antiguedad, AvisoDiaAnterior } from "./antiguedad.tsx";
 
 // Regenerar la página cada 30 minutos (ISR). Si Open-Meteo falla al regenerar,
 // Next sigue sirviendo la última versión buena. Por eso aquí no atrapamos errores:
@@ -65,13 +65,15 @@ export default async function Pagina() {
 
   return (
     <main>
+      <AvisoDiaAnterior hoy={hoy} />
+
       <h1>¿Se puede salir a la laguna hoy?</h1>
 
       <Dia datos={deHoy} nombre={`Hoy, ${fechaLarga(hoy)}`} principal />
 
       <div className="actualizado">
         <p>Actualizado: {momentoLargo(generadoEn)}.</p>
-        <Antiguedad generadoEn={generadoEn.toISOString()} />
+        <Antiguedad generadoEn={generadoEn.toISOString()} hoy={hoy} />
       </div>
 
       {hayAlerta && (
@@ -113,6 +115,7 @@ export default async function Pagina() {
       <footer>
         <p>{NOTA_OLAS}</p>
         <p>{AVISO_LEGAL}</p>
+        <p>{INSTRUCCIONES_INSTALAR}</p>
         <p>
           Datos: <a href="https://open-meteo.com/">Open-Meteo.com</a>
         </p>

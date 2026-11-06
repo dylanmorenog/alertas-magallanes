@@ -30,7 +30,10 @@
   },
   "include": [
     "next-env.d.ts",
+    "next.config.ts",
+    "playwright.config.ts",
     "app",
+    "e2e",
     "src",
     "scripts",
     ".next/types/**/*.ts",

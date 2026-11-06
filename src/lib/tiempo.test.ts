@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { describirAntiguedad, fechaEnMexico, fechaLarga, nombreDelDia, sumarDias } from "./tiempo.ts";
+import {
+  describirAntiguedad,
+  esDeUnDiaAnterior,
+  fechaEnMexico,
+  fechaLarga,
+  nombreDelDia,
+  sumarDias,
+} from "./tiempo.ts";
 
 test("fechaEnMexico: a las 03:00 UTC del día 6, en México todavía es el día 5", () => {
   assert.equal(fechaEnMexico(new Date("2026-11-06T03:00:00Z")), "2026-11-05");
@@ -20,6 +27,17 @@ test("nombreDelDia: Hoy, Mañana y luego el día de la semana", () => {
 
 test("fechaLarga no se corre de día ni lleva coma", () => {
   assert.equal(fechaLarga("2026-11-05"), "jueves 5 de noviembre");
+});
+
+test("esDeUnDiaAnterior: la misma noche en México todavía es el mismo día", () => {
+  // 23:59 del día 5 en México = 05:59 UTC del día 6
+  assert.equal(esDeUnDiaAnterior("2026-11-05", new Date("2026-11-06T05:59:00Z")), false);
+  // 00:01 del día 6 en México
+  assert.equal(esDeUnDiaAnterior("2026-11-05", new Date("2026-11-06T06:01:00Z")), true);
+});
+
+test("esDeUnDiaAnterior: con el reloj del celular atrasado no avisa", () => {
+  assert.equal(esDeUnDiaAnterior("2026-11-05", new Date("2026-11-04T18:00:00Z")), false);
 });
 
 const generado = new Date("2026-11-05T12:00:00Z");
