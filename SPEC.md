@@ -39,6 +39,8 @@ inundaciones), no quienes salen a pescar. Ver "Hallazgos con la comunidad".
    principal, indicando que puede cambiar.
 6. Para amarillo y rojo: lista corta de qué hacer orientada a hogares
    (techos, inundaciones, celulares cargados, números de emergencia).
+   Máximo 5 consejos, los más relevantes para el tipo de alerta; el resto queda
+   plegado en "Más consejos" en la página y no va en el mensaje de Facebook.
    No predecir suspensión de clases.
 7. Aviso visible de que es informativo y no sustituye a Protección Civil ni a
    Capitanía de Puerto.

@@ -2,7 +2,7 @@
 // estas pruebas revisan dónde y cómo se muestra la respuesta, no qué dice el pronóstico.
 
 import { expect, test } from "@playwright/test";
-import { DESCRIPCION_SITIO, NIVELES_DIA, PAGINA, PREGUNTA, RESPUESTA_GENERAL } from "../src/config/reglas.ts";
+import { AVISO_LEGAL, DESCRIPCION_SITIO, NIVELES_DIA, PAGINA, PREGUNTA, RESPUESTA_GENERAL } from "../src/config/reglas.ts";
 import { URL_PUBLICA } from "../src/config/sitio.ts";
 
 // Todos los títulos posibles de la respuesta general (los valores de texto, no las funciones).
@@ -79,3 +79,15 @@ test("ninguna etiqueta para compartir menciona el estado del tiempo", async ({ p
     for (const prohibido of prohibidos) expect(texto).not.toContain(prohibido);
   }
 });
+
+// Requisito 7: el aviso de que la página es informativa se ve sin bajar, tanto en el
+// celular de las pruebas (Pixel 7) como en uno básico de 360×640.
+for (const pantalla of [null, { width: 360, height: 640 }]) {
+  test(`el aviso legal se ve sin bajar (${pantalla ? `${pantalla.width}×${pantalla.height}` : "Pixel 7"})`, async ({ page }) => {
+    if (pantalla) await page.setViewportSize(pantalla);
+    await page.goto("/");
+    await expect(page.getByText(AVISO_LEGAL)).toBeInViewport({ ratio: 1 });
+    // Y una sola vez: ya no se repite en el pie.
+    await expect(page.getByText(AVISO_LEGAL)).toHaveCount(1);
+  });
+}

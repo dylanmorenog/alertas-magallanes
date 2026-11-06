@@ -118,21 +118,72 @@ test("con alerta, los datos faltantes van en la nota", () => {
   assert.equal(r.nota, "Faltan datos de olas para mañana.");
 });
 
+// Atajos para leer las pruebas de "qué hacer" (con la configuración actual: máximo 5).
+const [desagues, documentos, noCruces, adondeIr] = QUE_HACER.lluvia;
+const [techos, arboles] = QUE_HACER.viento;
+const [agua] = QUE_HACER.generales;
+const [celulares, numeros] = QUE_HACER.siempre;
+
+function consejos(cambios: Record<number, Partial<PronosticoDia>>) {
+  return queHacer(evaluarPronostico(semana(cambios), hoy));
+}
+
 test("qué hacer: sin alertas no hay consejos", () => {
-  assert.deepEqual(queHacer(evaluarPronostico(semana(), hoy)), []);
+  assert.deepEqual(consejos({}), { principales: [], mas: [] });
 });
 
-test("qué hacer: lluvia → consejos de lluvia y los de siempre", () => {
-  assert.deepEqual(queHacer(evaluarPronostico(semana({ 2: { lluvia3dMm: 150 } }), hoy)), [
-    ...QUE_HACER.lluvia,
-    ...QUE_HACER.siempre,
-  ]);
+test("qué hacer: solo lluvia → 3 de lluvia y los de siempre; el resto, plegado", () => {
+  assert.deepEqual(consejos({ 2: { lluvia3dMm: 150 } }), {
+    principales: [desagues, documentos, noCruces, celulares, numeros],
+    mas: [adondeIr, agua],
+  });
 });
 
-test("qué hacer: lluvia y viento → los dos grupos, sin repetir los de siempre", () => {
-  assert.deepEqual(queHacer(evaluarPronostico(semana({ 0: { lluviaMm: 60 }, 1: { rachasMaxKmh: 55 } }), hoy)), [
-    ...QUE_HACER.lluvia,
-    ...QUE_HACER.viento,
-    ...QUE_HACER.siempre,
-  ]);
+test("qué hacer: lluvia y viento → los dos tipos tienen consejos visibles", () => {
+  assert.deepEqual(consejos({ 0: { lluviaMm: 60 }, 1: { rachasMaxKmh: 55 } }), {
+    principales: [desagues, documentos, techos, celulares, numeros],
+    mas: [noCruces, adondeIr, arboles, agua],
+  });
+});
+
+test("qué hacer: solo viento → los de viento y, en el lugar que sobra, los generales", () => {
+  assert.deepEqual(consejos({ 1: { rachasMaxKmh: 55 } }), {
+    principales: [techos, arboles, agua, celulares, numeros],
+    mas: [],
+  });
+});
+
+test("qué hacer: solo olas (sin consejos propios) → generales y los de siempre", () => {
+  assert.deepEqual(consejos({ 1: { olasMaxM: 2 } }), { principales: [agua, celulares, numeros], mas: [] });
+});
+
+// Propiedades que deben cumplirse con cualquier combinación de alertas y cualquier tope:
+// si alguien cambia el máximo o agrega consejos, estas pruebas siguen cuidando las reglas.
+test("qué hacer: con cualquier alerta y cualquier tope, la lista visible respeta las reglas", () => {
+  const alertas: Record<string, Partial<PronosticoDia>> = {
+    lluvia: { lluviaMm: 60 },
+    lluvia3d: { lluvia3dMm: 150 },
+    viento: { rachasMaxKmh: 55 },
+    olas: { olasMaxM: 2 },
+  };
+  const nombres = Object.keys(alertas);
+  // Todas las combinaciones no vacías de alertas, cada una en un día distinto.
+  for (let mascara = 1; mascara < 1 << nombres.length; mascara++) {
+    const elegidas = nombres.filter((_, i) => mascara & (1 << i));
+    const cambios = Object.fromEntries(elegidas.map((nombre, i) => [i, alertas[nombre]]));
+    const dias = evaluarPronostico(semana(cambios), hoy);
+
+    for (let maximo = 2; maximo <= 10; maximo++) {
+      const { principales, mas } = queHacer(dias, { ...QUE_HACER, maximo });
+      const caso = `${elegidas.join("+")}, máximo ${maximo}`;
+      assert.ok(principales.length <= maximo, `${caso}: ${principales.length} consejos visibles`);
+      for (const fijo of QUE_HACER.siempre) assert.ok(principales.includes(fijo), `${caso}: falta "${fijo}"`);
+      const todos = [...principales, ...mas];
+      assert.equal(new Set(todos).size, todos.length, `${caso}: hay consejos repetidos`);
+      // Nunca un consejo de un tipo de alerta que no está.
+      const hayLluvia = elegidas.includes("lluvia") || elegidas.includes("lluvia3d");
+      if (!hayLluvia) assert.ok(!todos.some((c) => QUE_HACER.lluvia.includes(c)), `${caso}: consejo de lluvia`);
+      if (!elegidas.includes("viento")) assert.ok(!todos.some((c) => QUE_HACER.viento.includes(c)), `${caso}: consejo de viento`);
+    }
+  }
 });

@@ -192,6 +192,23 @@ a {
   padding: 0 1rem 0.5rem;
 }
 
+/* "Más consejos": el resumen debe verse tocable, con un área cómoda para el dedo. */
+.que-hacer summary {
+  padding: 0.5rem 0;
+  color: var(--azul);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Informativo, pero visible: color normal del texto y una barra a la izquierda,
+   sin competir con la respuesta. */
+.aviso-legal {
+  margin: 0 0 1rem;
+  padding: 0.25rem 0.75rem;
+  border-left: 4px solid var(--azul);
+  font-size: 1rem;
+}
+
 /* Una sola columna también en pantallas anchas: con 5 días, dos columnas dejan una tarjeta
    suelta, y en vertical el orden de lectura es el orden de los días. */
 .dias {

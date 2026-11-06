@@ -56,7 +56,11 @@ test("mensaje completo con alerta roja que podría seguir", () => {
       "🟢 Lunes 9: sin alertas (puede cambiar)",
       "",
       "Qué hacer:",
-      ...[...QUE_HACER.lluvia, ...QUE_HACER.siempre].map((consejo) => `• ${consejo}`),
+      "• Limpia desagües y canaletas.",
+      "• Sube del piso documentos, medicinas y aparatos; guarda los documentos en bolsas cerradas.",
+      "• No cruces calles ni arroyos con corriente, aunque parezcan poco profundos.",
+      "• Carga celulares y baterías.",
+      "• Ten a la mano los números de emergencia.",
       "",
       "Emergencias: 911 · Marina: 800 627 4621 (800 MARINA1) · Capitanía de Puerto, radio: VHF canal 16, las 24 horas",
       "Pronóstico actualizado: https://alertas.example",
@@ -88,6 +92,13 @@ test("solo viento → consejos de viento, no de lluvia", () => {
   const texto = mensaje({ 1: { rachasMaxKmh: 55 } }) ?? "";
   assert.ok(texto.includes(`• ${QUE_HACER.viento[0]}`));
   assert.ok(!texto.includes(`• ${QUE_HACER.lluvia[0]}`));
+});
+
+test("con lluvia y viento, el mensaje lleva solo los consejos principales", () => {
+  const lineas = (mensaje({ 0: { lluviaMm: 60 }, 1: { rachasMaxKmh: 55 } }) ?? "").split("\n");
+  const consejos = lineas.filter((linea) => linea.startsWith("• "));
+  assert.equal(consejos.length, QUE_HACER.maximo);
+  assert.ok(!lineas.includes(`• ${QUE_HACER.generales[0]}`)); // plegado en la página
 });
 
 test("cada emoji va seguido de una palabra, nunca solo", () => {

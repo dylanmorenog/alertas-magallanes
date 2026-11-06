@@ -28,6 +28,7 @@ export const COMPARTIR = {
 export const PAGINA = {
   actualizado: (momento: string) => `Actualizado: ${momento}.`,
   queHacer: "Qué hacer",
+  masConsejos: (cuantos: number) => `Más consejos (${cuantos})`,
   diaPorDia: "Día por día",
   puedeCambiar: "puede cambiar",
   emergencias: "Emergencias",
@@ -159,9 +160,17 @@ export const SIN_DATOS_PARA = (dias: string) => `No hay datos para ${dias}.`;
 export const FALTAN_DATOS_PODRIA_SER_PEOR = (faltan: string) =>
   `Faltan datos de ${faltan}; podría ser peor.`;
 
-// Qué hacer, según el tipo de alerta. Las olas no tienen consejos propios todavía:
-// faltan recomendaciones validadas para quienes viven cerca de la playa.
+// En la página, este consejo enlaza a la sección de emergencias.
+export const CONSEJO_EMERGENCIAS = "Ten a la mano los números de emergencia.";
+
+// Qué hacer, según el tipo de alerta. Se muestran como máximo `maximo` consejos; el resto
+// queda en "Más consejos" (en la página) y no va en el mensaje de Facebook.
+// El ORDEN de cada lista es la prioridad: para ajustarla tras validar con la comunidad,
+// basta con reordenar.
+// Las olas no tienen consejos propios todavía: faltan recomendaciones validadas para
+// quienes viven cerca de la playa.
 export const QUE_HACER = {
+  maximo: 5,
   lluvia: [
     "Limpia desagües y canaletas.",
     "Sube del piso documentos, medicinas y aparatos; guarda los documentos en bolsas cerradas.",
@@ -172,11 +181,10 @@ export const QUE_HACER = {
     "Asegura techos, láminas y objetos sueltos que el viento pueda levantar.",
     "Aléjate de árboles, postes y cables.",
   ],
-  siempre: [
-    "Carga celulares y baterías.",
-    "Ten agua potable, comida que no se eche a perder, linterna y pilas.",
-    "Ten a la mano los números de emergencia.",
-  ],
+  // Útiles con cualquier alerta: ocupan los lugares que dejen libres los de arriba.
+  generales: ["Ten agua potable, comida que no se eche a perder, linterna y pilas."],
+  // Siempre visibles con cualquier alerta (los pide el SPEC). Van al final de la lista.
+  siempre: ["Carga celulares y baterías.", CONSEJO_EMERGENCIAS],
 };
 
 // Mensaje para Facebook. Solo se publica cuando hay alerta, para que la gente no se
@@ -196,8 +204,9 @@ export const MENSAJE = {
 
 export const NOTA_OLAS ="Olas: pronóstico en el mar, frente a la costa. No incluye la laguna.";
 
+// Va arriba, justo debajo de la hora de actualización, para que se vea sin bajar.
 export const AVISO_LEGAL =
-  "Esta página es informativa y no sustituye los avisos de Protección Civil ni de Capitanía de Puerto.";
+  "Página informativa: no sustituye los avisos de Protección Civil ni de Capitanía de Puerto.";
 
 // A partir de cuántas horas se advierte que el pronóstico es viejo.
 // Normalmente la página tiene menos de 1 hora (se regenera cada 30 minutos).

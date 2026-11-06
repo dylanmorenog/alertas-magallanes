@@ -58,7 +58,8 @@ export function mensajeFacebook({
     ...dias.map((d) => lineaDia(d, hoy)),
     "",
     MENSAJE.queHacer,
-    ...queHacer(dias).map((consejo) => `• ${consejo}`),
+    // Solo los principales: el resto está en la página, que es el enlace del mensaje.
+    ...queHacer(dias).principales.map((consejo) => `• ${consejo}`),
     "",
     lineaEmergencias(),
     `${MENSAJE.enlace} ${url ?? MENSAJE.enlacePendiente}`,

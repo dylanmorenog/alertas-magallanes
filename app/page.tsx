@@ -15,7 +15,14 @@ import {
   type RespuestaGeneral,
 } from "../src/lib/resumen.ts";
 import { fechaEnMexico, momentoLargo, nombreDelDia } from "../src/lib/tiempo.ts";
-import { AVISO_LEGAL, INSTRUCCIONES_INSTALAR, NOTA_OLAS, PAGINA, PREGUNTA } from "../src/config/reglas.ts";
+import {
+  AVISO_LEGAL,
+  CONSEJO_EMERGENCIAS,
+  INSTRUCCIONES_INSTALAR,
+  NOTA_OLAS,
+  PAGINA,
+  PREGUNTA,
+} from "../src/config/reglas.ts";
 import { CONTACTOS } from "../src/config/contactos.ts";
 import { Antiguedad, AvisoDiaAnterior } from "./antiguedad.tsx";
 
@@ -42,6 +49,11 @@ function Respuesta({ general }: { general: RespuestaGeneral }) {
       {general.nota && <p className="nota">{general.nota}</p>}
     </div>
   );
+}
+
+// Un consejo; el de los números de emergencia enlaza a esa sección.
+function Consejo({ texto }: { texto: string }) {
+  return <li>{texto === CONSEJO_EMERGENCIAS ? <a href="#emergencias">{texto}</a> : texto}</li>;
 }
 
 // Tarjeta de un día. Hoy usa la misma tarjeta que los demás: la respuesta general ya
@@ -118,14 +130,28 @@ export default async function Pagina() {
           <Antiguedad generadoEn={generadoEn.toISOString()} hoy={hoy} />
         </div>
 
-        {consejos.length > 0 && (
+        {/* Arriba y con el color normal del texto: tiene que verse sin bajar. */}
+        <p className="aviso-legal">{AVISO_LEGAL}</p>
+
+        {consejos.principales.length > 0 && (
           <section className="que-hacer">
             <h2>{PAGINA.queHacer}</h2>
             <ul>
-              {consejos.map((paso) => (
-                <li key={paso}>{paso}</li>
+              {consejos.principales.map((texto) => (
+                <Consejo key={texto} texto={texto} />
               ))}
             </ul>
+            {/* <details> se abre con un toque y no necesita JavaScript. */}
+            {consejos.mas.length > 0 && (
+              <details>
+                <summary>{PAGINA.masConsejos(consejos.mas.length)}</summary>
+                <ul>
+                  {consejos.mas.map((texto) => (
+                    <Consejo key={texto} texto={texto} />
+                  ))}
+                </ul>
+              </details>
+            )}
           </section>
         )}
 
@@ -138,7 +164,7 @@ export default async function Pagina() {
           </div>
         </section>
 
-        <section className="contactos">
+        <section className="contactos" id="emergencias">
           <h2>{PAGINA.emergencias}</h2>
           <ul>
             {CONTACTOS.map((contacto) => (
@@ -157,7 +183,6 @@ export default async function Pagina() {
         <footer>
           <p>{NOTA_OLAS}</p>
           {notaEnPrueba && <p>{notaEnPrueba}</p>}
-          <p>{AVISO_LEGAL}</p>
           <p>{INSTRUCCIONES_INSTALAR}</p>
           <p>
             Datos: <a href="https://open-meteo.com/">Open-Meteo.com</a>

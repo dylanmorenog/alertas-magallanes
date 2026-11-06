@@ -53,10 +53,14 @@ try {
     }
   }
 
-  const consejos = queHacer(dias);
-  if (consejos.length > 0) {
+  const { principales, mas } = queHacer(dias);
+  if (principales.length > 0) {
     console.log("\nQué hacer:");
-    for (const consejo of consejos) console.log(`  - ${consejo}`);
+    for (const consejo of principales) console.log(`  - ${consejo}`);
+  }
+  if (mas.length > 0) {
+    console.log("\nMás consejos (en la página, plegados; no van en el mensaje):");
+    for (const consejo of mas) console.log(`  - ${consejo}`);
   }
 
   const nota = notaUmbralesEnPrueba();

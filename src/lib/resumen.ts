@@ -166,13 +166,47 @@ export function respuestaGeneral(dias: DiaEvaluado[], hoy: string, reglas: Regla
   return { tono: "verde", titulo: RESPUESTA_GENERAL.verdeIncompleto, detalle: faltantes, nota: null };
 }
 
-// Consejos según el tipo de alerta; vacío si no hay ninguna.
-export function queHacer(dias: DiaEvaluado[]): string[] {
+export type Consejos = {
+  principales: string[]; // como máximo QUE_HACER.maximo; van en la página y en el mensaje
+  mas: string[]; // el resto de los consejos relevantes; solo en la página, plegados
+};
+
+// Consejos según el tipo de alerta; vacíos si no hay ninguna.
+//
+// Los de `siempre` tienen lugar asegurado. Los lugares que quedan se reparten por turnos
+// entre los tipos de alerta presentes (lluvia, viento), tomando de cada lista en su orden
+// de prioridad: así, con lluvia y viento a la vez, ninguno se queda sin consejos visibles.
+// Si sobran lugares, los llenan los generales.
+export function queHacer(dias: DiaEvaluado[], consejos = QUE_HACER): Consejos {
   const variables = new Set(dias.flatMap(({ evaluacion }) => evaluacion.razones.map((r) => r.variable)));
-  if (variables.size === 0) return [];
-  return [
-    ...(variables.has("lluvia") || variables.has("lluvia3d") ? QUE_HACER.lluvia : []),
-    ...(variables.has("rachas") ? QUE_HACER.viento : []),
-    ...QUE_HACER.siempre,
+  if (variables.size === 0) return { principales: [], mas: [] };
+
+  const deAlerta = [
+    ...(variables.has("lluvia") || variables.has("lluvia3d") ? [consejos.lluvia] : []),
+    ...(variables.has("rachas") ? [consejos.viento] : []),
   ];
+  let libres = Math.max(0, consejos.maximo - consejos.siempre.length);
+
+  // 1. Por turnos: uno de cada grupo, luego el segundo de cada uno, etc.
+  const tomados = deAlerta.map(() => 0);
+  let alguno = true;
+  while (libres > 0 && alguno) {
+    alguno = false;
+    deAlerta.forEach((grupo, i) => {
+      if (libres > 0 && tomados[i] < grupo.length) {
+        tomados[i]++;
+        libres--;
+        alguno = true;
+      }
+    });
+  }
+
+  // 2. Si sobran lugares, los generales.
+  const generales = consejos.generales.slice(0, libres);
+
+  // En la lista se agrupan por tipo (no en el orden de los turnos): se lee mejor.
+  return {
+    principales: [...deAlerta.flatMap((grupo, i) => grupo.slice(0, tomados[i])), ...generales, ...consejos.siempre],
+    mas: [...deAlerta.flatMap((grupo, i) => grupo.slice(tomados[i])), ...consejos.generales.slice(generales.length)],
+  };
 }
