@@ -1,4 +1,4 @@
-// Datos históricos de Open-Meteo para el backtesting.
+// Datos históricos de Open-Meteo para el backtesting (parte 1: lo que PASÓ).
 // Docs: https://open-meteo.com/en/docs/historical-weather-api y .../marine-weather-api
 //
 // Decisiones:
@@ -7,29 +7,21 @@
 //   sirve: no trae lluvia ni viento propios.
 // - Olas: "era5_ocean", el único modelo de oleaje con décadas de historia (desde 1940).
 //   cell_selection=sea para que elija una celda de mar, no de costa.
-// - Caché en disco (.cache/, fuera del repo): al agregar eventos no se descarga todo otra
-//   vez, y repetir el cálculo da exactamente el mismo resultado.
 // - Un año por petición: 35 años de golpe tardaban más de 4 minutos (o nunca llegaban).
 //   Así cada petición es ligera, cada año se guarda en caché por separado y, si una falla,
-//   lo ya descargado no se pierde.
-// - Peticiones una tras otra, con reintentos y espera creciente si el servidor está
-//   saturado (503) o pide bajar el ritmo (429): es un servicio gratuito.
+//   lo ya descargado no se pierde. Peticiones una tras otra: es un servicio gratuito.
+// - Caché (ver descargas.ts), salvo los últimos DIAS_PRELIMINARES: ERA5 publica primero
+//   datos preliminares (ERA5T) que se corrigen semanas después.
 
-import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { setTimeout as esperar } from "node:timers/promises";
+import { pedirConCache, CARPETA_CACHE } from "./descargas.ts";
 import { MAR_ADENTRO, PUEBLO, ZONA_HORARIA, type Coordenadas, type PronosticoDia } from "./open-meteo.ts";
 import { lluviaAcumulada } from "./lluvia.ts";
-import { sumarDias } from "./tiempo.ts";
+import { diasEntre, fechaEnMexico, sumarDias } from "./tiempo.ts";
 import { DIAS_LLUVIA_ACUMULADA } from "../config/reglas.ts";
 
 const URL_ARCHIVO = "https://archive-api.open-meteo.com/v1/archive";
 const URL_MARINA = "https://marine-api.open-meteo.com/v1/marine";
-const TIEMPO_MAXIMO_MS = 60_000;
-const REINTENTOS = 5;
-const ESPERA_INICIAL_MS = 5_000; // luego 10, 20, 40 y 80 segundos
-const CARPETA_CACHE = join(".cache", "open-meteo");
+const DIAS_PRELIMINARES = 90;
 
 export type RespuestaClima = {
   latitude: number;
@@ -64,43 +56,6 @@ function url(base: string, punto: Coordenadas, desde: string, hasta: string, ext
     ...extra,
   });
   return `${base}?${params}`;
-}
-
-// Se reintenta lo que suele ser pasajero: saturación (503), exceso de ritmo (429), una
-// petición que se queda colgada (tiempo agotado) o un error de red. Un 400 (petición mal
-// armada) no se reintenta: fallaría igual.
-async function pedirConReintentos<T>(direccion: string): Promise<T> {
-  for (let intento = 0; ; intento++) {
-    let motivo: string;
-    try {
-      const res = await fetch(direccion, { signal: AbortSignal.timeout(TIEMPO_MAXIMO_MS) });
-      if (res.ok) return (await res.json()) as T;
-      if (res.status !== 503 && res.status !== 429) {
-        throw new Error(`Open-Meteo respondió ${res.status}: ${await res.text()}`, { cause: "definitivo" });
-      }
-      motivo = `respondió ${res.status}`;
-    } catch (error) {
-      if (error instanceof Error && error.cause === "definitivo") throw error;
-      motivo = error instanceof Error && error.name === "TimeoutError" ? "no respondió a tiempo" : "error de red";
-    }
-    if (intento >= REINTENTOS) throw new Error(`Open-Meteo ${motivo} tras ${REINTENTOS + 1} intentos.`);
-    const espera = ESPERA_INICIAL_MS * 2 ** intento;
-    console.error(`Open-Meteo ${motivo}; reintento en ${espera / 1000} s...`);
-    await esperar(espera);
-  }
-}
-
-async function pedirConCache<T>(direccion: string, carpeta: string): Promise<T> {
-  const archivo = join(carpeta, `${createHash("sha256").update(direccion).digest("hex").slice(0, 16)}.json`);
-  try {
-    return JSON.parse(await readFile(archivo, "utf8")) as T;
-  } catch {
-    // No está en caché (o está dañado): se descarga.
-  }
-  const datos = await pedirConReintentos<T>(direccion);
-  await mkdir(carpeta, { recursive: true });
-  await writeFile(archivo, JSON.stringify(datos));
-  return datos;
 }
 
 // Parte un rango de fechas en tramos de un año de calendario (el primero y el último
@@ -156,7 +111,11 @@ export function unirHistorico(clima: RespuestaClima, mar: RespuestaMarina, desde
 }
 
 // Historial diario de `desde` a `hasta` (AAAA-MM-DD, inclusive), en hora de México.
-export async function obtenerHistorico(desde: string, hasta: string, carpetaCache = CARPETA_CACHE): Promise<Historico> {
+export async function obtenerHistorico(
+  desde: string,
+  hasta: string,
+  { carpeta = CARPETA_CACHE, hoy = fechaEnMexico(new Date()) }: { carpeta?: string; hoy?: string } = {},
+): Promise<Historico> {
   // Días extra al inicio para que la lluvia de 3 días del primer día esté completa.
   const desdeConMargen = sumarDias(desde, -(DIAS_LLUVIA_ACUMULADA - 1));
   const tramos = tramosPorAno(desdeConMargen, hasta);
@@ -164,7 +123,8 @@ export async function obtenerHistorico(desde: string, hasta: string, carpetaCach
   const partesClima: RespuestaClima[] = [];
   const partesMar: RespuestaMarina[] = [];
   for (const [i, tramo] of tramos.entries()) {
-    console.error(`Datos históricos ${i + 1}/${tramos.length} (${tramo.desde.slice(0, 4)})...`);
+    if (tramos.length > 1) console.error(`Datos históricos ${i + 1}/${tramos.length} (${tramo.desde.slice(0, 4)})...`);
+    const opciones = { carpeta, guardar: diasEntre(tramo.hasta, hoy) > DIAS_PRELIMINARES };
     partesClima.push(
       await pedirConCache<RespuestaClima>(
         url(URL_ARCHIVO, PUEBLO, tramo.desde, tramo.hasta, {
@@ -173,7 +133,7 @@ export async function obtenerHistorico(desde: string, hasta: string, carpetaCach
           wind_speed_unit: "kmh",
           precipitation_unit: "mm",
         }),
-        carpetaCache,
+        opciones,
       ),
     );
     partesMar.push(
@@ -183,7 +143,7 @@ export async function obtenerHistorico(desde: string, hasta: string, carpetaCach
           models: "era5_ocean",
           cell_selection: "sea",
         }),
-        carpetaCache,
+        opciones,
       ),
     );
   }

@@ -1,0 +1,40 @@
+[
+  {
+    "id": "2026-10-frente-frio-2",
+    "fecha": "2026-10-17",
+    "hasta": "2026-10-18",
+    "descripcion": "Frente frío 2: alerta roja en Cárdenas; inundaciones costeras en Paraíso y Chiltepec.",
+    "alcance": "cardenas",
+    "fuentes": [
+      {
+        "nombre": "Publimetro, 18 oct 2026: inundaciones costeras y cortes carreteros en Cárdenas y Paraíso",
+        "url": "https://www.publimetro.com.mx/noticias/2026/10/19/frente-frio-2-deja-inundaciones-cortes-carreteros-y-danos-en-viviendas-del-sureste/"
+      },
+      {
+        "nombre": "Por Esto, 18 oct 2026: 144 personas afectadas y 29 viviendas en riesgo en Paraíso y Cárdenas",
+        "url": "https://www.poresto.com/mexico/2026/10/18/frente-frio-azota-fuerza-costa-tabasco-oleaje-intenso-afecta-decenas-viviendas-pobladores.amp.html"
+      },
+      {
+        "nombre": "Meteored, 18 oct 2026: alerta roja en Teapa, Huimanguillo, Cárdenas y Paraíso; inundaciones costeras y evacuaciones en Chiltepec del 17 a la madrugada del 18",
+        "url": "https://www.meteored.mx/noticias/actualidad/el-estado-de-tabasco-esta-bajo-emergencia-por-inundaciones-originadas-el-frente-frio-2-y-su-masa-de-aire.html"
+      }
+    ],
+    "verificadoEl": "2026-11-06",
+    "notas": "Meteored menciona patrullajes preventivos de Protección Civil en Sánchez Magallanes, sin reportar daños en el pueblo."
+  },
+  {
+    "id": "2019-11-frente-frio-12",
+    "fecha": "2019-11-13",
+    "hasta": null,
+    "descripcion": "Frente frío 12: espuma de mar en las calles de Sánchez Magallanes.",
+    "alcance": "magallanes",
+    "fuentes": [
+      {
+        "nombre": "Mexico News Daily, 14 nov 2019: la espuma llegó el miércoles 13 por la mañana con el frente frío 12",
+        "url": "https://mexiconewsdaily.com/news/cold-front-brings-chest-deep-sea-foam"
+      }
+    ],
+    "verificadoEl": "2026-11-06",
+    "notas": "El Heraldo de Tabasco (14 nov 2019, «Invade espuma marina») también lo reporta, pero su sitio bloqueó la verificación."
+  }
+]

@@ -1,17 +1,20 @@
-// Backtesting de los umbrales: aplica las MISMAS reglas de la app a datos históricos.
-// Funciones puras (sin red ni disco) para poder probarlas con series inventadas.
+// Backtesting de los umbrales: aplica las MISMAS reglas de la app (evaluarDia) a datos del
+// pasado. Funciones puras (sin red ni disco) para poder probarlas con series inventadas.
 //
-// Ojo con lo que mide: los datos históricos son lo que PASÓ (reanálisis), no lo que se
-// pronosticó. "Anticipación" es cuántos días antes de los daños el tiempo real ya cruzaba
-// el umbral; no mide qué tan bueno habría sido el pronóstico.
+// Dos preguntas distintas, con datos distintos:
+// - Parte 1 (histórico, ERA5): ¿el tiempo que de verdad hizo cruzaba los umbrales?
+//   ¿Cuántas alertas habría por año?
+// - Parte 2 (pronósticos archivados): ¿con cuántos días de anticipación habría avisado la
+//   app con el pronóstico que existía en ese momento?
 
 import type { PronosticoDia } from "./open-meteo.ts";
-import { evaluarDia, type Nivel, type Reglas } from "./semaforo.ts";
-import { diasEntre, sumarDias } from "./tiempo.ts";
-import type { Evento } from "../config/eventos.ts";
-import { UMBRALES } from "../config/reglas.ts";
+import type { Previas } from "./open-meteo-previas.ts";
+import { evaluarDia, type Nivel, type Razon, type Reglas } from "./semaforo.ts";
+import { diasEntre, puedeCambiar, sumarDias } from "./tiempo.ts";
+import type { Evento } from "./eventos.ts";
+import { DIAS_LLUVIA_ACUMULADA, UMBRALES } from "../config/reglas.ts";
 
-export type DiaHistorico = { dia: PronosticoDia; nivel: Nivel | null };
+export type DiaHistorico = { dia: PronosticoDia; nivel: Nivel | null; razones: Razon[] };
 
 export type Episodio = { desde: string; hasta: string; dias: number; nivel: "amarillo" | "rojo" };
 
@@ -24,28 +27,35 @@ export type ConteoAnual = {
   diasSinDatos: number;
 };
 
-export type ResultadoEvento = {
-  evento: Evento;
-  nivelMaximo: Nivel | null; // en la ventana de búsqueda; null si no hubo datos
-  // Días ANTES de `evento.desde` del primer día con alerta: positivo = avisó antes,
-  // 0 = el mismo día, negativo = llegó tarde, null = no hubo.
-  anticipacionAlerta: number | null; // amarillo o rojo
-  anticipacionRojo: number | null;
-  detalle: DiaHistorico[]; // de `desde − diasAntes` a `desde + DIAS_DESPUES`
-};
-
-// Días después del inicio que se muestran en el detalle, para ver cómo siguió.
-const DIAS_DESPUES = 3;
+const ORDEN: (Nivel | null)[] = [null, "verde", "amarillo", "rojo"];
 
 function esAlerta(nivel: Nivel | null): nivel is "amarillo" | "rojo" {
   return nivel === "amarillo" || nivel === "rojo";
 }
 
+function peor(niveles: (Nivel | null)[]): Nivel | null {
+  return niveles.reduce<Nivel | null>((a, b) => (ORDEN.indexOf(b) > ORDEN.indexOf(a) ? b : a), null);
+}
+
 const ano = (fecha: string) => Number(fecha.slice(0, 4));
 
+// Último día del evento: `hasta`, o `fecha` si fue un solo día.
+export const finDelEvento = (evento: Evento) => evento.hasta ?? evento.fecha;
+
 export function evaluarSerie(dias: PronosticoDia[], reglas: Reglas = UMBRALES): DiaHistorico[] {
-  return dias.map((dia) => ({ dia, nivel: evaluarDia(dia, reglas).nivel }));
+  return dias.map((dia) => {
+    const { nivel, razones } = evaluarDia(dia, reglas);
+    return { dia, nivel, razones };
+  });
 }
+
+// Las mismas reglas, pero sin que las olas muevan el color.
+export function reglasSinOlas(reglas: Reglas = UMBRALES): Reglas {
+  return { ...reglas, olas: { ...reglas.olas, mueveElColor: false } };
+}
+
+// ---------------------------------------------------------------------------------------
+// Parte 1: histórico
 
 // Días seguidos con alerta cuentan como UNA alerta: en la práctica son una sola serie de
 // publicaciones. Un día sin alerta o sin datos corta el episodio, igual que un hueco en
@@ -93,36 +103,106 @@ export function alertasPorAno(serie: DiaHistorico[], desdeAno: number, hastaAno:
   return [...conteos.values()];
 }
 
-// Busca la primera alerta entre `desde − diasAntes` y el último día del evento
-// (`hasta`, o `desde` si no se conoce).
-export function analizarEvento(evento: Evento, serie: DiaHistorico[], diasAntes = 7): ResultadoEvento {
-  const inicioVentana = sumarDias(evento.desde, -diasAntes);
-  const finVentana = evento.hasta ?? evento.desde;
-  const ventana = serie.filter(({ dia }) => dia.fecha >= inicioVentana && dia.fecha <= finVentana);
+export type ResultadoHistorico = {
+  evento: Evento;
+  // Peor nivel en los días del evento (de `fecha` a `hasta`); null si no hubo datos.
+  nivel: Nivel | null;
+  nivelSinOlas: Nivel | null;
+  // Qué variables cruzaron el umbral en los días del evento (sin repetir).
+  variables: Razon["variable"][];
+  detalle: DiaHistorico[]; // de `fecha − DIAS_ANTES_DETALLE` a `fin + 1`
+};
 
-  const primera = (cumple: (nivel: Nivel | null) => boolean) => {
-    const encontrado = ventana.find(({ nivel }) => cumple(nivel));
-    return encontrado ? diasEntre(encontrado.dia.fecha, evento.desde) : null;
-  };
+export const DIAS_ANTES_DETALLE = 3;
 
-  const ORDEN: (Nivel | null)[] = [null, "verde", "amarillo", "rojo"];
-  const nivelMaximo = ventana.reduce<Nivel | null>(
-    (peor, { nivel }) => (ORDEN.indexOf(nivel) > ORDEN.indexOf(peor) ? nivel : peor),
-    null,
-  );
-
-  const finDetalle = sumarDias(evento.desde, DIAS_DESPUES);
+// ¿El tiempo real de los días del evento cruzaba los umbrales? `serie` y `serieSinOlas`
+// son la misma serie evaluada con y sin olas.
+export function evaluarEvento(evento: Evento, serie: DiaHistorico[], serieSinOlas: DiaHistorico[]): ResultadoHistorico {
+  const fin = finDelEvento(evento);
+  const delEvento = (s: DiaHistorico[]) => s.filter(({ dia }) => dia.fecha >= evento.fecha && dia.fecha <= fin);
+  const dias = delEvento(serie);
+  const inicioDetalle = sumarDias(evento.fecha, -DIAS_ANTES_DETALLE);
+  const finDetalle = sumarDias(fin, 1);
   return {
     evento,
-    nivelMaximo,
-    anticipacionAlerta: primera(esAlerta),
-    anticipacionRojo: primera((nivel) => nivel === "rojo"),
-    detalle: serie.filter(({ dia }) => dia.fecha >= inicioVentana && dia.fecha <= finDetalle),
+    nivel: peor(dias.map((d) => d.nivel)),
+    nivelSinOlas: peor(delEvento(serieSinOlas).map((d) => d.nivel)),
+    variables: [...new Set(dias.flatMap((d) => d.razones.map((r) => r.variable)))],
+    detalle: serie.filter(({ dia }) => dia.fecha >= inicioDetalle && dia.fecha <= finDetalle),
   };
 }
 
-// Las mismas reglas, pero sin que las olas muevan el color: para ver cuántas alertas
-// agregan las olas (dato secundario y muy grueso en el histórico).
-export function reglasSinOlas(reglas: Reglas = UMBRALES): Reglas {
-  return { ...reglas, olas: { ...reglas.olas, mueveElColor: false } };
+// ---------------------------------------------------------------------------------------
+// Parte 2: lo que habría mostrado la app
+
+export type DiaVisto = { fecha: string; anticipacion: number; puedeCambiar: boolean; nivel: Nivel | null };
+// Lo que la app mostraba el día `emision` sobre los días del evento que caían en su ventana.
+export type Vista = { emision: string; dias: DiaVisto[] };
+
+export type ResultadoApp = {
+  evento: Evento;
+  vistas: Vista[]; // una por día de emisión, de `fecha − 4` al fin del evento
+  // Días ANTES de `evento.fecha` del primer aviso: positivo = antes, 0 = el mismo día,
+  // negativo = ya empezado el evento, null = nunca avisó.
+  anticipacion: number | null; // amarillo o rojo, en cualquier día visible
+  anticipacionConfiable: number | null; // aviso en un día que NO "puede cambiar"
+  anticipacionRojo: number | null;
+};
+
+// Pronóstico de un día tal como lo veía la app el día `emision`.
+// La lluvia de 3 días mezcla pasado y futuro: los días anteriores a la emisión usan el
+// pronóstico de anticipación 0 (lo más parecido a lo que la app ya tenía como "pasado");
+// los demás, el que había con su anticipación.
+function diaVisto(previas: Previas, emision: string, fecha: string): PronosticoDia {
+  const delDia = (dia: string) => previas.get(Math.max(0, diasEntre(emision, dia)))?.get(dia) ?? null;
+  const hoy = delDia(fecha);
+  const ventana = Array.from({ length: DIAS_LLUVIA_ACUMULADA }, (_, i) =>
+    delDia(sumarDias(fecha, i - (DIAS_LLUVIA_ACUMULADA - 1)))?.lluviaMm ?? null,
+  );
+  const lluvia3d = ventana.some((v) => v === null)
+    ? null
+    : Math.round((ventana as number[]).reduce((s, v) => s + v, 0) * 10) / 10;
+  return {
+    fecha,
+    lluviaMm: hoy?.lluviaMm ?? null,
+    lluvia3dMm: lluvia3d,
+    vientoMaxKmh: hoy?.vientoMaxKmh ?? null,
+    rachasMaxKmh: hoy?.rachasMaxKmh ?? null,
+    olasMaxM: null, // no hay olas pronosticadas archivadas
+  };
+}
+
+// Reconstruye, día por día, lo que la app mostraba antes y durante el evento.
+// Sin olas: no existen pronósticos de oleaje archivados.
+export function simularApp(evento: Evento, previas: Previas, reglas: Reglas = UMBRALES, maxima = 4): ResultadoApp {
+  const sinOlas = reglasSinOlas(reglas);
+  const fin = finDelEvento(evento);
+  const vistas: Vista[] = [];
+
+  for (let emision = sumarDias(evento.fecha, -maxima); emision <= fin; emision = sumarDias(emision, 1)) {
+    const dias: DiaVisto[] = [];
+    for (let fecha = emision > evento.fecha ? emision : evento.fecha; fecha <= fin; fecha = sumarDias(fecha, 1)) {
+      const anticipacion = diasEntre(emision, fecha);
+      if (anticipacion > maxima) break;
+      dias.push({
+        fecha,
+        anticipacion,
+        puedeCambiar: puedeCambiar(fecha, emision),
+        nivel: evaluarDia(diaVisto(previas, emision, fecha), sinOlas).nivel,
+      });
+    }
+    vistas.push({ emision, dias });
+  }
+
+  const primera = (cumple: (d: DiaVisto) => boolean) => {
+    const vista = vistas.find((v) => v.dias.some(cumple));
+    return vista ? diasEntre(vista.emision, evento.fecha) : null;
+  };
+  return {
+    evento,
+    vistas,
+    anticipacion: primera((d) => esAlerta(d.nivel)),
+    anticipacionConfiable: primera((d) => esAlerta(d.nivel) && !d.puedeCambiar),
+    anticipacionRojo: primera((d) => d.nivel === "rojo"),
+  };
 }
