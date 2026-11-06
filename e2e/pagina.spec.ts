@@ -2,7 +2,8 @@
 // estas pruebas revisan dónde y cómo se muestra la respuesta, no qué dice el pronóstico.
 
 import { expect, test } from "@playwright/test";
-import { PAGINA, PREGUNTA, RESPUESTA_GENERAL } from "../src/config/reglas.ts";
+import { DESCRIPCION_SITIO, NIVELES_DIA, PAGINA, PREGUNTA, RESPUESTA_GENERAL } from "../src/config/reglas.ts";
+import { URL_PUBLICA } from "../src/config/sitio.ts";
 
 // Todos los títulos posibles de la respuesta general (los valores de texto, no las funciones).
 const TITULOS = Object.values(RESPUESTA_GENERAL).filter((valor) => typeof valor === "string");
@@ -40,5 +41,41 @@ test("en producción no se pueden activar los datos de ejemplo", async ({ page }
     await page.goto(ruta);
     await expect(page.getByRole("heading", { name: PREGUNTA })).toBeVisible();
     await expect(page.getByText("DATOS DE EJEMPLO")).toHaveCount(0);
+  }
+});
+
+test("la vista previa al compartir apunta al sitio público y su imagen existe", async ({ page, request }) => {
+  await page.goto("/");
+  const meta = (propiedad: string) => page.locator(`meta[property="${propiedad}"]`).getAttribute("content");
+
+  expect(await meta("og:title")).toBe(PREGUNTA);
+  expect(await meta("og:description")).toBe(DESCRIPCION_SITIO);
+
+  // Facebook necesita la dirección absoluta del sitio público, no la de localhost.
+  expect(URL_PUBLICA).not.toBeNull();
+  const imagen = new URL((await meta("og:image")) ?? "");
+  expect(imagen.origin).toBe(URL_PUBLICA);
+
+  // La misma ruta, pedida al servidor que se está probando.
+  const respuesta = await request.get(imagen.pathname + imagen.search);
+  expect(respuesta.status()).toBe(200);
+  expect(respuesta.headers()["content-type"]).toBe("image/png");
+  // En un PNG, el ancho y el alto están en los bytes 16 a 23 (cabecera IHDR).
+  const png = await respuesta.body();
+  expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
+});
+
+// Facebook guarda la vista previa en caché: si mencionara el pronóstico, podría mostrar
+// uno viejo. Se revisan todas las etiquetas que leen Facebook, WhatsApp y otras apps.
+test("ninguna etiqueta para compartir menciona el estado del tiempo", async ({ page }) => {
+  await page.goto("/");
+  const textos = await page
+    .locator('meta[property^="og:"], meta[name^="twitter:"], meta[name="description"]')
+    .evaluateAll((etiquetas) => etiquetas.map((e) => (e.getAttribute("content") ?? "").toUpperCase()));
+  expect(textos.length).toBeGreaterThan(5); // la prueba no pasa en vacío
+
+  const prohibidos = [...TITULOS, ...Object.values(NIVELES_DIA)].map((t) => t.toUpperCase());
+  for (const texto of textos) {
+    for (const prohibido of prohibidos) expect(texto).not.toContain(prohibido);
   }
 });

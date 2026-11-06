@@ -13,6 +13,17 @@ export const DESCRIPCION_SITIO =
   "Pronóstico de lluvia y viento de 5 días para Sánchez Magallanes, Tabasco, " +
   "para preparar tu casa a tiempo.";
 
+// Vista previa al compartir (paso 5b). Estática a propósito: Facebook guarda la vista previa
+// en caché, y una que mostrara el pronóstico podría enseñar un color viejo. Ningún texto de
+// aquí puede mencionar el estado del tiempo (una prueba lo revisa).
+export const COMPARTIR = {
+  sitio: "Alertas Magallanes",
+  subtitulo: "Pronóstico de lluvia y viento de 5 días · Sánchez Magallanes, Tabasco",
+  textoAlternativo:
+    "Alertas Magallanes: un semáforo con sus tres luces y la pregunta " +
+    "«¿Viene mal tiempo a Magallanes?». Pronóstico de 5 días para Sánchez Magallanes, Tabasco.",
+};
+
 // Encabezados y etiquetas de la página.
 export const PAGINA = {
   actualizado: (momento: string) => `Actualizado: ${momento}.`,
