@@ -71,6 +71,33 @@ export function nombreDelDia(fecha: string, hoy: string): string {
   return mayuscula(diaDeLaSemana(fecha));
 }
 
+// Para el mensaje de Facebook, que se sigue leyendo días después: "hoy" solo no basta.
+// "hoy viernes 6", "mañana sábado 7" o "el domingo 8".
+export function diaConFecha(fecha: string, hoy: string): string {
+  if (fecha === hoy) return `hoy ${diaDeLaSemana(fecha)}`;
+  if (fecha === sumarDias(hoy, 1)) return `mañana ${diaDeLaSemana(fecha)}`;
+  return `el ${diaDeLaSemana(fecha)}`;
+}
+
+// "Hoy viernes 6", "Mañana sábado 7" o "Domingo 8", al inicio de una línea.
+export function nombreConFecha(fecha: string, hoy: string): string {
+  return mayuscula(diaConFecha(fecha, hoy).replace(/^el /, ""));
+}
+
+// "7:20 p.m." en hora de México, como se dice en el pueblo. Se arma a mano: el formato
+// de México de Intl pone "p. m." con espacios especiales que se ven raros al copiar.
+export function hora12(instante: Date): string {
+  const partes = new Intl.DateTimeFormat("en-US", {
+    timeZone: ZONA_HORARIA,
+    hour: "numeric",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(instante);
+  const hora = Number(partes.find((p) => p.type === "hour")?.value);
+  const minuto = partes.find((p) => p.type === "minute")?.value;
+  return `${hora % 12 === 0 ? 12 : hora % 12}:${minuto} ${hora < 12 ? "a.m." : "p.m."}`;
+}
+
 // "jueves 5 de noviembre" (sin la coma que pone Intl, para escribir "Hoy, jueves 5 de noviembre")
 export function fechaLarga(fecha: string): string {
   return new Intl.DateTimeFormat("es-MX", {

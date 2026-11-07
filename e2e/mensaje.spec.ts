@@ -22,7 +22,8 @@ test("muestra el mensaje con su botón, o dice que hoy no se publica", async ({ 
   if (hayMensaje) {
     const texto = await page.locator("textarea.mensaje-texto").inputValue();
     expect(texto).toContain(`${MENSAJE.enlace} ${URL_PUBLICA}`);
-    expect(texto).toContain(MENSAJE.avisoLegal);
+    expect(texto).toContain(MENSAJE.emergencias);
+    expect(texto).toContain(MENSAJE.atribucion);
     await expect(page.getByRole("button", { name: PAGINA_MENSAJE.copiar })).toBeVisible();
   } else {
     await expect(page.getByText(MENSAJE.sinAlerta)).toBeVisible();

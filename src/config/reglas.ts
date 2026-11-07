@@ -162,6 +162,9 @@ export const FALTAN_DATOS_PODRIA_SER_PEOR = (faltan: string) =>
 
 // En la página, este consejo enlaza a la sección de emergencias.
 export const CONSEJO_EMERGENCIAS = "Ten a la mano los números de emergencia.";
+// Los usan la página y el mensaje de Facebook: escritos una sola vez.
+export const CONSEJO_NO_CRUCES = "No cruces calles ni arroyos con corriente, aunque parezcan poco profundos.";
+export const CONSEJO_CELULARES = "Carga celulares y baterías.";
 
 // Qué hacer, según el tipo de alerta. Se muestran como máximo `maximo` consejos; el resto
 // queda en "Más consejos" (en la página) y no va en el mensaje de Facebook.
@@ -174,7 +177,7 @@ export const QUE_HACER = {
   lluvia: [
     "Limpia desagües y canaletas.",
     "Sube del piso documentos, medicinas y aparatos; guarda los documentos en bolsas cerradas.",
-    "No cruces calles ni arroyos con corriente, aunque parezcan poco profundos.",
+    CONSEJO_NO_CRUCES,
     "Si tu casa se inunda seguido, platica con tu familia a dónde irían.",
   ],
   viento: [
@@ -184,24 +187,54 @@ export const QUE_HACER = {
   // Útiles con cualquier alerta: ocupan los lugares que dejen libres los de arriba.
   generales: ["Ten agua potable, comida que no se eche a perder, linterna y pilas."],
   // Siempre visibles con cualquier alerta (los pide el SPEC). Van al final de la lista.
-  siempre: ["Carga celulares y baterías.", CONSEJO_EMERGENCIAS],
+  siempre: [CONSEJO_CELULARES, CONSEJO_EMERGENCIAS],
 };
 
 // Mensaje para Facebook. Solo se publica cuando hay alerta, para que la gente no se
 // acostumbre a leer avisos de buen tiempo y deje de leer los de mal tiempo.
+// Lenguaje sencillo: sin números ni palabras técnicas (una prueba lo revisa). Los números
+// se quedan en la página, que es el enlace del mensaje.
 export const MENSAJE = {
   lugar: "a Magallanes",
-  fecha: (momento: string) => `Pronóstico del ${momento}.`,
-  diaPorDia: "Día por día:",
+  // Segunda línea: cuándo es lo peor, con día y fecha.
+  loPeor: (cuando: string, que: string) => `Lo peor: ${cuando}. ${que}.`,
+  // Cuando la alerta solo está en los días que pueden cambiar.
+  podriaVenir: (cuando: string, que: string) => `Podría venir ${cuando} ${PUEDE_CAMBIAR}. ${que}.`,
   queHacer: "Qué hacer:",
-  emergencias: "Emergencias:",
-  enlace: "Pronóstico actualizado:",
+  emergencias: "Emergencias: 911",
+  enlace: "Más información:",
   enlacePendiente: "[ENLACE PENDIENTE: no publicar sin el enlace]",
-  // Distinto del AVISO_LEGAL de la página: en una publicación, "esta página" no aplica.
-  avisoLegal: "Informativo; no sustituye los avisos de Protección Civil ni de Capitanía de Puerto.",
+  // Hora del pronóstico y aviso legal en una sola línea.
+  // "de la 1:20 p.m." pero "de las 7:20 p.m.".
+  pie: (hora: string, fecha: string) =>
+    `Pronóstico de ${hora.startsWith("1:") ? "la" : "las"} ${hora} del ${fecha}. ` +
+    "Es informativo: no sustituye los avisos de Protección Civil.",
+  // Open-Meteo exige atribución (licencia CC BY 4.0).
   atribucion: "Datos: Open-Meteo.com",
   // Lo dicen igual el script (npm run mensaje) y la página /mensaje.
   sinAlerta: "Sin alerta: hoy no se publica.",
+};
+
+// Cómo se dice cada alerta en el mensaje: consecuencias, no números.
+// La lluvia de varios días se dice por lo que provoca (inundaciones), no por su nombre.
+export const COMO_SE_DICE: Record<"lluvia" | "viento" | "olas" | "inundacion", Record<"amarillo" | "rojo", string>> = {
+  lluvia: { amarillo: "lluvia fuerte", rojo: "lluvia muy fuerte" },
+  viento: { amarillo: "viento fuerte", rojo: "viento muy fuerte" },
+  olas: { amarillo: "mar picado", rojo: "mar muy picado" },
+  inundacion: { amarillo: "se pueden inundar calles", rojo: "se pueden inundar calles y casas" },
+};
+
+// Consejos del mensaje: menos y más cortos que en la página (la página no cambia).
+// Los tipos de alerta se turnan (lluvia, viento) tomando de cada lista en orden; la lluvia
+// va primero y su lista empieza con "No cruces…", así que ese consejo siempre sale cuando la
+// alerta es por lluvia. Si sobra lugar, los generales. "Carga celulares" siempre al final.
+// Los números de emergencia no van: el mensaje ya trae el 911.
+export const CONSEJOS_MENSAJE = {
+  maximo: 4,
+  lluvia: [CONSEJO_NO_CRUCES, "Sube del piso documentos, medicinas y aparatos.", "Limpia desagües y canaletas."],
+  viento: QUE_HACER.viento,
+  generales: QUE_HACER.generales,
+  alFinal: CONSEJO_CELULARES,
 };
 
 // Página /mensaje, para copiar el mensaje desde el celular. No aparece en buscadores.

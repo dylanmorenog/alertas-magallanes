@@ -10,6 +10,7 @@ import { lista, listaDeFaltantes, type Tono } from "./respuesta.ts";
 import {
   FALTAN_DATOS_PARA,
   NOMBRES_SIN_ALERTA,
+  CONSEJOS_MENSAJE,
   QUE_HACER,
   QUE_VIENE,
   RESPUESTA_GENERAL,
@@ -185,14 +186,30 @@ export function queHacer(dias: DiaEvaluado[], consejos = QUE_HACER): Consejos {
     ...(variables.has("lluvia") || variables.has("lluvia3d") ? [consejos.lluvia] : []),
     ...(variables.has("rachas") ? [consejos.viento] : []),
   ];
-  let libres = Math.max(0, consejos.maximo - consejos.siempre.length);
+  const libres = Math.max(0, consejos.maximo - consejos.siempre.length);
 
-  // 1. Por turnos: uno de cada grupo, luego el segundo de cada uno, etc.
-  const tomados = deAlerta.map(() => 0);
+  // 1. Por turnos entre los tipos de alerta. 2. Si sobran lugares, los generales.
+  const tomados = repartirPorTurnos(deAlerta, libres);
+  const usados = tomados.reduce((suma, n) => suma + n, 0);
+  const generales = consejos.generales.slice(0, libres - usados);
+
+  // En la lista se agrupan por tipo (no en el orden de los turnos): se lee mejor.
+  return {
+    principales: [...deAlerta.flatMap((grupo, i) => grupo.slice(0, tomados[i])), ...generales, ...consejos.siempre],
+    mas: [...deAlerta.flatMap((grupo, i) => grupo.slice(tomados[i])), ...consejos.generales.slice(generales.length)],
+  };
+}
+
+// Cuántos consejos de cada grupo caben en `lugares`, repartidos por turnos: uno de cada
+// grupo, luego el segundo de cada uno, etc. Así, con lluvia y viento a la vez, ninguno se
+// queda sin consejos visibles.
+function repartirPorTurnos(grupos: string[][], lugares: number): number[] {
+  const tomados = grupos.map(() => 0);
+  let libres = lugares;
   let alguno = true;
   while (libres > 0 && alguno) {
     alguno = false;
-    deAlerta.forEach((grupo, i) => {
+    grupos.forEach((grupo, i) => {
       if (libres > 0 && tomados[i] < grupo.length) {
         tomados[i]++;
         libres--;
@@ -200,13 +217,29 @@ export function queHacer(dias: DiaEvaluado[], consejos = QUE_HACER): Consejos {
       }
     });
   }
+  return tomados;
+}
 
-  // 2. Si sobran lugares, los generales.
-  const generales = consejos.generales.slice(0, libres);
+// Consejos del mensaje de Facebook: como mucho CONSEJOS_MENSAJE.maximo, más cortos que los
+// de la página. Van en el orden de los turnos: la lluvia va primero y su lista empieza con
+// "No cruces…", así que ese consejo encabeza la lista siempre que la alerta sea por lluvia;
+// después, lo más importante de cada tipo. "Carga celulares" siempre al final.
+export function consejosDelMensaje(dias: DiaEvaluado[], consejos = CONSEJOS_MENSAJE): string[] {
+  const variables = new Set(dias.flatMap(({ evaluacion }) => evaluacion.razones.map((r) => r.variable)));
+  if (variables.size === 0) return [];
 
-  // En la lista se agrupan por tipo (no en el orden de los turnos): se lee mejor.
-  return {
-    principales: [...deAlerta.flatMap((grupo, i) => grupo.slice(0, tomados[i])), ...generales, ...consejos.siempre],
-    mas: [...deAlerta.flatMap((grupo, i) => grupo.slice(tomados[i])), ...consejos.generales.slice(generales.length)],
-  };
+  const deAlerta = [
+    ...(variables.has("lluvia") || variables.has("lluvia3d") ? [consejos.lluvia] : []),
+    ...(variables.has("rachas") ? [consejos.viento] : []),
+  ];
+  const libres = Math.max(0, consejos.maximo - 1); // uno se reserva para "Carga celulares"
+  const tomados = repartirPorTurnos(deAlerta, libres);
+
+  const enTurnos: string[] = [];
+  for (let ronda = 0; ronda < Math.max(0, ...tomados); ronda++) {
+    deAlerta.forEach((grupo, i) => {
+      if (ronda < tomados[i]) enTurnos.push(grupo[ronda]);
+    });
+  }
+  return [...enTurnos, ...consejos.generales.slice(0, libres - enTurnos.length), consejos.alFinal];
 }

@@ -67,15 +67,6 @@ export function explicarRazon(
   return `${frase} (${PALABRA_NIVEL[razon.nivel]} desde ${numero.format(razon.umbral)} ${regla.unidad}${enPrueba}).`;
 }
 
-// Versión corta, sin umbrales, para el mensaje de Facebook:
-// "lluvia intensa (120 mm)", "lluvia de 3 días (210 mm, umbral en prueba)".
-export function razonCorta(razon: Razon, reglas: Reglas = UMBRALES): string {
-  const regla = reglas[razon.variable];
-  const nombre = razon.variable === "lluvia" ? (categoriaLluvia(razon.valor) ?? "lluvia") : NOMBRES[razon.variable];
-  const enPrueba = regla.porValidar ? `, ${TEXTO_EN_PRUEBA}` : "";
-  return `${nombre} (${numero.format(razon.valor)} ${regla.unidad}${enPrueba})`;
-}
-
 // Nota al pie con los umbrales por validar, o null si ya no queda ninguno.
 export function notaUmbralesEnPrueba(reglas: Reglas = UMBRALES): string | null {
   const enPrueba = VARIABLES.filter((variable) => reglas[variable].porValidar && reglas[variable].mueveElColor);

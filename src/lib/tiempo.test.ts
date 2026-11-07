@@ -3,10 +3,13 @@ import assert from "node:assert/strict";
 import {
   delDia,
   describirAntiguedad,
+  diaConFecha,
   elDia,
   esDeUnDiaAnterior,
   fechaEnMexico,
   fechaLarga,
+  hora12,
+  nombreConFecha,
   nombreDelDia,
   puedeCambiar,
   sumarDias,
@@ -83,4 +86,22 @@ test("elDia y delDia arman frases con el día", () => {
       ["el sábado 7", "del sábado 7"],
     ],
   );
+});
+
+test("diaConFecha y nombreConFecha: hoy y mañana llevan día y fecha", () => {
+  const hoy = "2026-11-06"; // viernes
+  assert.equal(diaConFecha("2026-11-06", hoy), "hoy viernes 6");
+  assert.equal(diaConFecha("2026-11-07", hoy), "mañana sábado 7");
+  assert.equal(diaConFecha("2026-11-08", hoy), "el domingo 8");
+  assert.equal(nombreConFecha("2026-11-06", hoy), "Hoy viernes 6");
+  assert.equal(nombreConFecha("2026-11-07", hoy), "Mañana sábado 7");
+  assert.equal(nombreConFecha("2026-11-08", hoy), "Domingo 8");
+});
+
+test("hora12: formato de 12 horas en hora de México", () => {
+  // México es UTC−6 todo el año.
+  assert.equal(hora12(new Date("2026-11-07T01:20:00Z")), "7:20 p.m.");
+  assert.equal(hora12(new Date("2026-11-06T18:05:00Z")), "12:05 p.m."); // mediodía
+  assert.equal(hora12(new Date("2026-11-06T06:30:00Z")), "12:30 a.m."); // medianoche
+  assert.equal(hora12(new Date("2026-11-06T15:00:00Z")), "9:00 a.m.");
 });

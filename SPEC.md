@@ -32,6 +32,13 @@ inundaciones), no quienes salen a pescar. Ver "Hallazgos con la comunidad".
    enlace del mensaje y debe verse bien al compartirse. Se publica solo cuando
    hay alerta (amarillo o rojo), para que la gente no se acostumbre a leer
    avisos de buen tiempo y deje de leer los de mal tiempo.
+   Lenguaje sencillo: primero qué viene y cuándo es lo peor (con día y fecha), solo
+   los días con alerta, consecuencias en vez de números ("se pueden inundar calles
+   y casas", "viento fuerte", "mar picado"), como mucho 4 consejos ("No cruces
+   calles ni arroyos con corriente" siempre que sea por lluvia), hora en formato de
+   12 horas, 911, enlace, hora del pronóstico y que es informativo. Los números se
+   quedan en la página. Pruebas: sin unidades ni palabras técnicas, y largo
+   limitado (≤ 1,250 caracteres y 20 líneas en el peor caso).
    Se obtiene con `npm run mensaje` o desde el celular en `/mensaje`, que usa la
    misma función, tiene botón de copiar y no aparece en buscadores. `/mensaje` se
    arma en cada visita (nunca entrega un mensaje viejo guardado) pero lee la misma

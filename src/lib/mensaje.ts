@@ -1,35 +1,74 @@
-// Mensaje listo para publicar a mano en Facebook.
-// Se arma con las mismas funciones que la página, así que no puede decir algo distinto.
+// Mensaje listo para publicar a mano en Facebook, en lenguaje sencillo para la gente del
+// pueblo: qué viene, cuándo es lo peor y qué hacer. Sin números ni palabras técnicas (una
+// prueba lo revisa); los números se quedan en la página, que es el enlace del mensaje.
 // Solo existe cuando hay alerta: en cualquier otro caso devuelve null y no se publica.
 
-import { razonCorta, respuestaDelDia, type Tono } from "./respuesta.ts";
-import { queHacer, respuestaGeneral, type DiaEvaluado } from "./resumen.ts";
-import { momentoLargo, nombreDelDia } from "./tiempo.ts";
-import { MENSAJE, RESPUESTA_GENERAL } from "../config/reglas.ts";
-import { CONTACTOS } from "../config/contactos.ts";
+import { lista, type Tono } from "./respuesta.ts";
+import { consejosDelMensaje, respuestaGeneral, type DiaEvaluado } from "./resumen.ts";
+import type { Razon } from "./semaforo.ts";
+import { diaConFecha, fechaEnMexico, fechaLarga, hora12, nombreConFecha } from "./tiempo.ts";
+import { COMO_SE_DICE, MENSAJE, RESPUESTA_GENERAL } from "../config/reglas.ts";
 
 // Marcadores visuales: siempre van seguidos de una palabra, nunca solos.
 const EMOJI: Record<Tono, string> = { verde: "🟢", amarillo: "🟡", rojo: "🔴", gris: "⚪" };
+
+type Alerta = "amarillo" | "rojo";
+type Tipo = keyof typeof COMO_SE_DICE;
 
 function mayuscula(texto: string): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-// "🔴 Sábado 7: peligro. Lluvia intensa (120 mm); lluvia de 3 días (210 mm, umbral en prueba)"
-function lineaDia({ dia, evaluacion, puedeCambiar }: DiaEvaluado, hoy: string): string {
-  const respuesta = respuestaDelDia(evaluacion);
-  let linea = `${EMOJI[respuesta.tono]} ${nombreDelDia(dia.fecha, hoy)}: ${respuesta.titulo.toLowerCase()}`;
-  if (puedeCambiar) linea += ` ${RESPUESTA_GENERAL.puedeCambiar}`;
-  const razones = evaluacion.razones.map((razon) => razonCorta(razon));
-  if (razones.length > 0) linea += `. ${mayuscula(razones.join("; "))}`;
-  if (respuesta.faltan) linea += `. ${respuesta.faltan}`;
-  return linea;
+function conAlerta(d: DiaEvaluado): boolean {
+  return d.evaluacion.nivel === "amarillo" || d.evaluacion.nivel === "rojo";
 }
 
-// "Emergencias: 911 · Marina: 800 627 4621 (800 MARINA1) · ..."
-function lineaEmergencias(): string {
-  const numeros = CONTACTOS.map((c) => (c.nombreCorto ? `${c.nombreCorto}: ${c.numero}` : c.numero));
-  return `${MENSAJE.emergencias} ${numeros.join(" · ")}`;
+// Cómo se dice cada variable. La lluvia del día dice "lluvia fuerte" y además cuenta para
+// el riesgo de inundación; la lluvia de varios días solo se dice por lo que provoca.
+const TIPOS: Record<Razon["variable"], Tipo[]> = {
+  lluvia: ["lluvia", "inundacion"],
+  lluvia3d: ["inundacion"],
+  rachas: ["viento"],
+  olas: ["olas"],
+};
+
+// El peor nivel de cada tipo entre las razones dadas.
+function peorPorTipo(razones: Razon[]): Partial<Record<Tipo, Alerta>> {
+  const peor: Partial<Record<Tipo, Alerta>> = {};
+  for (const razon of razones) {
+    for (const tipo of TIPOS[razon.variable]) {
+      if (peor[tipo] !== "rojo") peor[tipo] = razon.nivel;
+    }
+  }
+  return peor;
+}
+
+// "lluvia muy fuerte, viento fuerte y mar picado; se pueden inundar calles y casas"
+function describir(razones: Razon[]): string {
+  const peor = peorPorTipo(razones);
+  const condiciones = (["lluvia", "viento", "olas"] as const)
+    .filter((tipo) => peor[tipo])
+    .map((tipo) => COMO_SE_DICE[tipo][peor[tipo]!]);
+  const consecuencia = peor.inundacion ? COMO_SE_DICE.inundacion[peor.inundacion] : null;
+  if (condiciones.length === 0) return consecuencia ?? "";
+  return consecuencia ? `${lista.format(condiciones)}; ${consecuencia}` : lista.format(condiciones);
+}
+
+// Segunda línea: cuándo es lo peor (el primer día con el nivel más alto) y qué viene en
+// todos los días con alerta. Si todo está en los días que pueden cambiar, "Podría venir…".
+function segundaLinea(alertas: DiaEvaluado[], hoy: string): string {
+  const pico = alertas.find((d) => d.evaluacion.nivel === "rojo") ?? alertas[0];
+  const que = mayuscula(describir(alertas.flatMap((d) => d.evaluacion.razones)));
+  const cuando = diaConFecha(pico.dia.fecha, hoy);
+  if (alertas.every((d) => d.puedeCambiar)) return MENSAJE.podriaVenir(cuando, que);
+  return MENSAJE.loPeor(pico.puedeCambiar ? `${cuando} ${RESPUESTA_GENERAL.puedeCambiar}` : cuando, que);
+}
+
+// "🔴 Mañana sábado 7: lluvia muy fuerte y viento muy fuerte; se pueden inundar calles y casas."
+function lineaDia({ dia, evaluacion, puedeCambiar }: DiaEvaluado, hoy: string): string {
+  const nivel = evaluacion.nivel as Alerta;
+  const cambiar = puedeCambiar ? ` ${RESPUESTA_GENERAL.puedeCambiar}` : "";
+  return `${EMOJI[nivel]} ${nombreConFecha(dia.fecha, hoy)}${cambiar}: ${describir(evaluacion.razones)}.`;
 }
 
 export function mensajeFacebook({
@@ -46,24 +85,24 @@ export function mensajeFacebook({
   const general = respuestaGeneral(dias, hoy);
   if (general.tono !== "amarillo" && general.tono !== "rojo") return null;
 
-  // Las primeras líneas deben bastar: mucha gente no toca "Ver más".
-  // La fecha va arriba porque una publicación sigue apareciendo en el muro días después.
+  // Solo los días con alerta: los días tranquilos no se listan.
+  const alertas = dias.filter(conAlerta);
+
+  // Las dos primeras líneas deben bastar: mucha gente no toca "Ver más".
   return [
     `${EMOJI[general.tono]} ${general.titulo} ${MENSAJE.lugar}`,
-    general.detalle,
+    segundaLinea(alertas, hoy),
     ...(general.nota ? [general.nota] : []),
-    MENSAJE.fecha(momentoLargo(generadoEn)),
     "",
-    MENSAJE.diaPorDia,
-    ...dias.map((d) => lineaDia(d, hoy)),
+    ...alertas.map((d) => lineaDia(d, hoy)),
     "",
     MENSAJE.queHacer,
-    // Solo los principales: el resto está en la página, que es el enlace del mensaje.
-    ...queHacer(dias).principales.map((consejo) => `• ${consejo}`),
+    ...consejosDelMensaje(dias).map((consejo) => `• ${consejo}`),
     "",
-    lineaEmergencias(),
+    MENSAJE.emergencias,
     `${MENSAJE.enlace} ${url ?? MENSAJE.enlacePendiente}`,
-    MENSAJE.avisoLegal,
+    // La fecha va en el mensaje porque una publicación sigue apareciendo días después.
+    MENSAJE.pie(hora12(generadoEn), fechaLarga(fechaEnMexico(generadoEn))),
     MENSAJE.atribucion,
   ].join("\n");
 }

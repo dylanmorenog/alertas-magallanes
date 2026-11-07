@@ -19,13 +19,13 @@ function esperado(): string[] {
   return (mensajeFacebook({ dias, hoy, generadoEn: new Date(), url: URL_PUBLICA }) ?? "").split("\n");
 }
 
-const sinFecha = (lineas: string[]) => lineas.filter((l) => !l.startsWith("Pronóstico del "));
+const sinFecha = (lineas: string[]) => lineas.filter((l) => !l.startsWith("Pronóstico de "));
 
 test("el texto es el mismo que genera mensajeFacebook()", async ({ page }) => {
   await page.goto("/mensaje");
   const texto = await page.locator("textarea.mensaje-texto").inputValue();
   expect(sinFecha(texto.split("\n"))).toEqual(sinFecha(esperado()));
-  expect(texto).toMatch(/^Pronóstico del .+\.$/m);
+  expect(texto).toMatch(/^Pronóstico de las? \d{1,2}:\d{2} [ap]\.m\. del .+$/m);
   await expect(page.getByText("DATOS DE EJEMPLO")).toBeVisible(); // en desarrollo sí se avisa
 });
 
@@ -58,5 +58,14 @@ test("sin portapapeles moderno (navegadores dentro de otras apps), copia con el 
     (window as unknown as { __portapapeles: Clipboard }).__portapapeles.readText(),
   );
   expect(copiado).toBe(texto);
-  expect(copiado).toContain(MENSAJE.avisoLegal);
+  expect(copiado).toContain(MENSAJE.emergencias);
+});
+
+// El mensaje va sin números, pero la página principal los conserva.
+test("la página principal sigue mostrando los números", async ({ page }) => {
+  await page.goto("/");
+  const texto = await page.locator("main").innerText();
+  expect(texto).toMatch(/\d+ mm/);
+  expect(texto).toMatch(/\d+ km\/h/);
+  expect(texto).toContain("umbral en prueba");
 });
