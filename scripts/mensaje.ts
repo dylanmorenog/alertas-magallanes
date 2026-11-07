@@ -9,6 +9,7 @@ import { evaluarPronostico } from "../src/lib/resumen.ts";
 import { mensajeFacebook } from "../src/lib/mensaje.ts";
 import { fechaEnMexico } from "../src/lib/tiempo.ts";
 import { URL_PUBLICA } from "../src/config/sitio.ts";
+import { MENSAJE } from "../src/config/reglas.ts";
 
 try {
   const generadoEn = new Date();
@@ -17,7 +18,7 @@ try {
   const mensaje = mensajeFacebook({ dias, hoy, generadoEn, url: URL_PUBLICA });
 
   if (mensaje === null) {
-    console.error("Sin alerta: hoy no se publica. El detalle está en `npm run pronostico`.");
+    console.error(`${MENSAJE.sinAlerta} El detalle está en \`npm run pronostico\`.`);
   } else {
     if (URL_PUBLICA === null) {
       console.error("Aviso: falta URL_PUBLICA en src/config/sitio.ts; el mensaje dice [ENLACE PENDIENTE].");

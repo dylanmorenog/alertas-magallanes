@@ -245,3 +245,46 @@ footer {
   color: var(--suave);
   font-size: 0.95rem;
 }
+
+/* Página /mensaje */
+
+.mensaje-texto {
+  display: block;
+  width: 100%;
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.75rem;
+  border: 2px solid var(--azul);
+  border-radius: 0.5rem;
+  background: var(--fondo);
+  color: var(--texto);
+  /* 16 px o más: en iPhone, un campo con letra más chica hace zoom al tocarlo. */
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  resize: vertical;
+}
+
+.boton-copiar {
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--azul);
+  color: #fff;
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.nota-copia {
+  min-height: 1.5em;
+  font-weight: 600;
+}
+
+.sin-alerta {
+  font-size: 1.25rem;
+  font-weight: 700;
+}

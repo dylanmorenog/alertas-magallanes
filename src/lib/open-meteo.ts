@@ -12,6 +12,13 @@ const DIAS = 5; // hoy y los 4 siguientes
 const DIAS_PASADOS = DIAS_LLUVIA_ACUMULADA - 1;
 const TIEMPO_MAXIMO_MS = 10_000;
 
+// Cuánto tiempo guarda Next cada respuesta de Open-Meteo en su caché de datos (segundos).
+// La página principal (`/`) y `/mensaje` piden las mismas URLs con las mismas opciones,
+// así que comparten las mismas entradas: `/mensaje` no agrega llamadas a Open-Meteo.
+// Debe coincidir con `revalidate` de app/page.tsx (allí tiene que ir escrito como número;
+// una prueba revisa que coincidan). En los scripts de Node la opción `next` se ignora.
+export const SEGUNDOS_CACHE = 1500;
+
 export type Coordenadas = { latitud: number; longitud: number };
 
 // El pueblo (en tierra) y un punto mar adentro, porque el oleaje solo existe en el mar.
@@ -64,16 +71,36 @@ function construirUrl(
 }
 
 // Nota: el "as T" le dice a TypeScript que confíe en la forma del JSON; no la verifica.
-async function pedirJson<T>(url: string): Promise<T> {
-  const res = await fetch(url, { signal: AbortSignal.timeout(TIEMPO_MAXIMO_MS) });
+// Devuelve también la fecha de la respuesta (encabezado `Date`): si vino de la caché de
+// Next, es la hora en que Open-Meteo la generó, no la de ahora.
+async function pedirJson<T>(url: string): Promise<{ datos: T; fecha: Date | null }> {
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(TIEMPO_MAXIMO_MS),
+    next: { revalidate: SEGUNDOS_CACHE },
+  });
   if (!res.ok) {
     throw new Error(`Open-Meteo respondió ${res.status}: ${await res.text()}`);
   }
-  return (await res.json()) as T;
+  const fecha = new Date(res.headers.get("date") ?? "");
+  return { datos: (await res.json()) as T, fecha: Number.isNaN(fecha.getTime()) ? null : fecha };
 }
 
+// Los datos son tan viejos como la más vieja de las respuestas. Sin ninguna fecha (no
+// debería pasar: Open-Meteo siempre manda `Date`), se usa `ahora`.
+export function fechaMasVieja(fechas: (Date | null)[], ahora: Date): Date {
+  const validas = fechas.filter((f): f is Date => f !== null);
+  return validas.length > 0 ? new Date(Math.min(...validas.map((f) => f.getTime()))) : ahora;
+}
+
+// Lo usan los scripts, que no necesitan la fecha de los datos.
 export async function obtenerPronostico(): Promise<PronosticoDia[]> {
-  const [clima, mar] = await Promise.all([
+  return (await obtenerPronosticoConFecha()).dias;
+}
+
+// Lo usan las páginas: `obtenidoEn` es de cuándo son los datos, para mostrar
+// "Actualizado" y "Pronóstico del…" con la hora real y no la de la visita.
+export async function obtenerPronosticoConFecha(): Promise<{ dias: PronosticoDia[]; obtenidoEn: Date }> {
+  const [respuestaClima, respuestaMar] = await Promise.all([
     pedirJson<RespuestaClima>(
       construirUrl(
         URL_CLIMA,
@@ -84,6 +111,8 @@ export async function obtenerPronostico(): Promise<PronosticoDia[]> {
     ),
     pedirJson<RespuestaMarina>(construirUrl(URL_MARINA, MAR_ADENTRO, ["wave_height_max"])),
   ]);
+  const clima = respuestaClima.datos;
+  const mar = respuestaMar.datos;
 
   // Unimos las dos respuestas por fecha, no por posición en el arreglo.
   const olasPorFecha = new Map(
@@ -93,7 +122,7 @@ export async function obtenerPronostico(): Promise<PronosticoDia[]> {
   // Se calcula sobre la serie completa (con los días pasados) y luego se descartan esos días.
   const lluvia3d = lluviaAcumulada(clima.daily.precipitation_sum, DIAS_LLUVIA_ACUMULADA);
 
-  return clima.daily.time
+  const dias = clima.daily.time
     .map((fecha, i) => ({
       fecha,
       lluviaMm: clima.daily.precipitation_sum[i] ?? null,
@@ -103,4 +132,6 @@ export async function obtenerPronostico(): Promise<PronosticoDia[]> {
       olasMaxM: olasPorFecha.get(fecha) ?? null,
     }))
     .slice(DIAS_PASADOS);
+
+  return { dias, obtenidoEn: fechaMasVieja([respuestaClima.fecha, respuestaMar.fecha], new Date()) };
 }

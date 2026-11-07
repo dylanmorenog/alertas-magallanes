@@ -4,17 +4,10 @@
 // Orden pensado para quien llega desde Facebook con mala señal: primero la pregunta y su
 // respuesta, luego cuándo se actualizó, qué hacer y, al final, el detalle día por día.
 
-import { obtenerPronostico } from "../src/lib/open-meteo.ts";
-import { escenarioDeEjemplo, pronosticoDeEjemplo } from "../src/lib/ejemplos.ts";
+import { cargarPronostico } from "../src/lib/cargar.ts";
 import { explicarRazon, notaUmbralesEnPrueba, respuestaDelDia, type Tono } from "../src/lib/respuesta.ts";
-import {
-  evaluarPronostico,
-  queHacer,
-  respuestaGeneral,
-  type DiaEvaluado,
-  type RespuestaGeneral,
-} from "../src/lib/resumen.ts";
-import { fechaEnMexico, momentoLargo, nombreDelDia } from "../src/lib/tiempo.ts";
+import { queHacer, respuestaGeneral, type DiaEvaluado, type RespuestaGeneral } from "../src/lib/resumen.ts";
+import { momentoLargo, nombreDelDia } from "../src/lib/tiempo.ts";
 import {
   AVISO_LEGAL,
   CONSEJO_EMERGENCIAS,
@@ -93,26 +86,10 @@ function Dia({ datos, hoy }: { datos: DiaEvaluado; hoy: string }) {
 }
 
 export default async function Pagina() {
-  const generadoEn = new Date();
   const notaEnPrueba = notaUmbralesEnPrueba();
-  const hoy = fechaEnMexico(generadoEn);
-
-  // Datos de ejemplo: solo en desarrollo y solo con la variable de entorno (ver ejemplos.ts).
-  // En producción esto siempre es null, sin importar la URL ni las variables de Railway.
-  const ejemplo = escenarioDeEjemplo({
-    nodeEnv: process.env.NODE_ENV,
-    escenario: process.env.PRONOSTICO_DE_EJEMPLO,
-  });
-  const pronostico = ejemplo ? pronosticoDeEjemplo(ejemplo, hoy) : await obtenerPronostico();
-
-  // Elegimos "hoy" por fecha, no por posición en la lista.
-  const dias = evaluarPronostico(
-    pronostico.filter((dia) => dia.fecha >= hoy),
-    hoy,
-  );
-  if (dias[0]?.dia.fecha !== hoy) {
-    throw new Error(`El pronóstico no incluye el día de hoy (${hoy})`);
-  }
+  // `generadoEn` es de cuándo son los datos (comparten caché con /mensaje), no la hora de
+  // la visita: así "Actualizado" nunca dice que la página es más reciente de lo que es.
+  const { dias, hoy, generadoEn, ejemplo } = await cargarPronostico();
 
   const general = respuestaGeneral(dias, hoy);
   // Consejos según las alertas de cualquiera de los días: prepararse antes sirve.

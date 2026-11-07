@@ -32,6 +32,10 @@ inundaciones), no quienes salen a pescar. Ver "Hallazgos con la comunidad".
    enlace del mensaje y debe verse bien al compartirse. Se publica solo cuando
    hay alerta (amarillo o rojo), para que la gente no se acostumbre a leer
    avisos de buen tiempo y deje de leer los de mal tiempo.
+   Se obtiene con `npm run mensaje` o desde el celular en `/mensaje`, que usa la
+   misma función, tiene botón de copiar y no aparece en buscadores. `/mensaje` se
+   arma en cada visita (nunca entrega un mensaje viejo guardado) pero lee la misma
+   caché de datos que la página principal: no agrega llamadas a Open-Meteo.
 5. Página web en español, muy ligera (que cargue con mala señal), instalable
    como PWA, que conteste en grande "¿Viene mal tiempo a Magallanes?" para los
    próximos 5 días, explicando por qué en lenguaje sencillo. Los días 4 y 5 se

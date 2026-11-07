@@ -200,6 +200,20 @@ export const MENSAJE = {
   // Distinto del AVISO_LEGAL de la página: en una publicación, "esta página" no aplica.
   avisoLegal: "Informativo; no sustituye los avisos de Protección Civil ni de Capitanía de Puerto.",
   atribucion: "Datos: Open-Meteo.com",
+  // Lo dicen igual el script (npm run mensaje) y la página /mensaje.
+  sinAlerta: "Sin alerta: hoy no se publica.",
+};
+
+// Página /mensaje, para copiar el mensaje desde el celular. No aparece en buscadores.
+export const PAGINA_MENSAJE = {
+  titulo: "Mensaje para Facebook",
+  instrucciones: "Toca el botón para copiarlo y pégalo en Facebook.",
+  datosDe: (momento: string) => `Datos del ${momento}.`,
+  copiar: "Copiar mensaje",
+  copiado: "Copiado",
+  aMano: "No se pudo copiar solo. Mantén presionado el texto y elige «Copiar».",
+  sinAlertaDetalle: "La respuesta de la página ahora es:",
+  verPagina: "Ver la página",
 };
 
 export const NOTA_OLAS ="Olas: pronóstico en el mar, frente a la costa. No incluye la laguna.";
