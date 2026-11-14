@@ -29,9 +29,10 @@ inundaciones), no quienes salen a pescar. Ver "Hallazgos con la comunidad".
    - Las olas son un dato secundario: mueven el color, pero una opción de la
      configuración permite desactivarlo.
 4. Mensaje listo para copiar y publicar a mano en Facebook. La página es el
-   enlace del mensaje y debe verse bien al compartirse. Se publica solo cuando
-   hay alerta (amarillo o rojo), para que la gente no se acostumbre a leer
-   avisos de buen tiempo y deje de leer los de mal tiempo.
+   enlace del mensaje y debe verse bien al compartirse. Se publica solo con
+   alerta roja (también la "posible" de los días 4 y 5), para que la gente no se
+   acostumbre a leer avisos de buen tiempo o de simple precaución y deje de leer
+   los de mal tiempo. El amarillo se ve en la página, pero no se publica.
    Lenguaje sencillo: primero qué viene y cuándo es lo peor (con día y fecha), solo
    los días con alerta, consecuencias en vez de números ("se pueden inundar calles
    y casas", "viento fuerte", "mar picado"), como mucho 4 consejos ("No cruces
@@ -48,11 +49,30 @@ inundaciones), no quienes salen a pescar. Ver "Hallazgos con la comunidad".
    próximos 5 días, explicando por qué en lenguaje sencillo. Los días 4 y 5 se
    marcan como "puede cambiar"; una alerta en esos días sí cambia la respuesta
    principal, indicando que puede cambiar.
+   El encabezado depende del nivel más alto de los 5 días, para no alarmar por
+   condiciones de precaución y que la gente confíe en el aviso cuando importa:
+   - Verde: "No, no se espera mal tiempo".
+   - Amarillo: "Precaución" y un motivo corto y tranquilo, con el dato y el día
+     ("Olas de hasta 1.5 m en el mar hoy"). Nunca dice "mal tiempo".
+   - Rojo: "Sí, viene mal tiempo" y un motivo de una o dos líneas, sin números:
+     solo lo que está en rojo y cuándo es lo peor ("Lluvia, viento y olas muy
+     fuertes; lo peor, mañana."). El detalle queda en "Día por día". Si el rojo
+     solo está en los días 4 y 5, "Posible mal tiempo" y "(puede cambiar)".
+   - Sin alertas pero con datos faltantes: "Sin alertas con los datos disponibles"
+     (neutral: cuando falta información no debe sonar tranquilizador).
+     Sin datos: "No sabemos".
+   Pruebas: en 681 semanas posibles, el amarillo nunca dice "mal tiempo" y "Sí,
+   viene mal tiempo" aparece solo con rojo en los días confiables.
+   Monitores de UptimeRobot: buscan "Sí, viene mal tiempo" y "Posible mal tiempo"
+   (para saber cuándo publicar) y "No sabemos" (falla de datos). Esos tres textos
+   están fijados por una prueba (src/lib/monitores.test.ts) y otra revisa que en el
+   HTML solo aparezcan como encabezado (e2e/monitores.spec.ts).
    Frescura: nadie debe ver un pronóstico de más de ~30 minutos. La página se
    regenera cada 25 minutos (caché ISR, para no hacer una consulta a Open-Meteo
    por visita) y un monitor externo (UptimeRobot, palabra clave, cada 5 minutos)
    la visita para que la regeneración no la pague la primera persona que llega.
-   El mismo monitor avisa por correo si la página muestra "NO SABEMOS". Si
+   El mismo monitor avisa por correo si la página muestra "No sabemos" (la
+   búsqueda del monitor no debe distinguir mayúsculas). Si
    Open-Meteo falla, Next sigue sirviendo la última versión buena y el monitor no
    lo detecta: por eso la página avisa a partir de 1 hora de antigüedad. No
    encender el CDN de Railway: respondería sin pasar por Next.

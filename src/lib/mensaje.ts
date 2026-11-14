@@ -1,7 +1,7 @@
 // Mensaje listo para publicar a mano en Facebook, en lenguaje sencillo para la gente del
 // pueblo: qué viene, cuándo es lo peor y qué hacer. Sin números ni palabras técnicas (una
 // prueba lo revisa); los números se quedan en la página, que es el enlace del mensaje.
-// Solo existe cuando hay alerta: en cualquier otro caso devuelve null y no se publica.
+// Solo existe cuando hay alerta roja: en cualquier otro caso devuelve null y no se publica.
 
 import { lista, type Tono } from "./respuesta.ts";
 import { consejosDelMensaje, respuestaGeneral, type DiaEvaluado } from "./resumen.ts";
@@ -82,8 +82,10 @@ export function mensajeFacebook({
   generadoEn: Date;
   url: string | null;
 }): string | null {
+  // Solo con alerta roja (también la "posible", de los días que pueden cambiar): publicar
+  // cada precaución acostumbraría a la gente a no leer los avisos.
   const general = respuestaGeneral(dias, hoy);
-  if (general.tono !== "amarillo" && general.tono !== "rojo") return null;
+  if (general.tono !== "rojo") return null;
 
   // Solo los días con alerta: los días tranquilos no se listan.
   const alertas = dias.filter(conAlerta);

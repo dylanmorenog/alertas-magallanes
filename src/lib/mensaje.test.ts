@@ -38,12 +38,16 @@ const peorCaso = () => mensaje({ 0: TODO_ROJO, 1: TODO_ROJO, 2: TODO_ROJO, 3: TO
 
 // Todos los mensajes que se pueden generar en las pruebas.
 const todos = () =>
-  [...NOMBRES_ESCENARIOS.map(deEscenario), peorCaso(), mensaje({ 1: { rachasMaxKmh: 55 } }), mensaje({ 2: { olasMaxM: 2 } })].filter(
+  [...NOMBRES_ESCENARIOS.map(deEscenario), peorCaso(), mensaje({ 1: { rachasMaxKmh: 75 }, 3: { rachasMaxKmh: 55 } }), mensaje({ 2: { olasMaxM: 3 } })].filter(
     (t): t is string => t !== null,
   );
 
-test("sin alerta no hay mensaje: no se publica", () => {
+test("sin alerta roja no hay mensaje: no se publica", () => {
   assert.equal(mensaje(), null);
+  // Amarillo (precaución): se ve en la página, pero no se publica.
+  assert.equal(mensaje({ 1: { rachasMaxKmh: 55 } }), null);
+  assert.equal(mensaje({ 2: { olasMaxM: 2 } }), null);
+  assert.equal(deEscenario("amarillo"), null);
   assert.equal(mensaje({ 2: { olasMaxM: null } }), null); // verde con datos faltantes
   assert.equal(mensaje({ 0: sinDatos, 1: sinDatos, 2: sinDatos, 3: sinDatos, 4: sinDatos }), null);
 });
@@ -53,7 +57,7 @@ test("mensaje completo del escenario rojo", () => {
   assert.equal(
     deEscenario("rojo"),
     [
-      "🔴 SÍ, VIENE MAL TIEMPO FUERTE a Magallanes",
+      "🔴 Sí, viene mal tiempo a Magallanes",
       "Lo peor: mañana sábado 7. Lluvia muy fuerte, viento muy fuerte y mar muy picado; se pueden inundar calles y casas.",
       "",
       "🟡 Hoy viernes 6: lluvia fuerte; se pueden inundar calles.",
@@ -98,10 +102,14 @@ test("largo limitado, también en el peor caso", () => {
 
 test("solo lista los días con alerta, no los tranquilos", () => {
   for (const texto of todos()) assert.ok(!texto.includes("🟢"));
-  const lineasDeDias = (mensaje({ 1: { rachasMaxKmh: 55 } }) ?? "").split("\n").filter((l) => /^\p{Extended_Pictographic}/u.test(l));
+  // Rojo mañana y amarillo el lunes: los días amarillos de una alerta roja sí se listan.
+  const lineasDeDias = (mensaje({ 1: { rachasMaxKmh: 75 }, 3: { rachasMaxKmh: 55 } }) ?? "")
+    .split("\n")
+    .filter((l) => /^\p{Extended_Pictographic}/u.test(l));
   assert.deepEqual(lineasDeDias, [
-    "🟡 SÍ, VIENE MAL TIEMPO a Magallanes",
-    "🟡 Mañana sábado 7: viento fuerte.",
+    "🔴 Sí, viene mal tiempo a Magallanes",
+    "🔴 Mañana sábado 7: viento muy fuerte.",
+    "🟡 Lunes 9 (puede cambiar): viento fuerte.",
   ]);
 });
 
@@ -109,7 +117,7 @@ test("como mucho 4 consejos; con lluvia, «No cruces…» siempre va primero", (
   const consejos = (texto: string) => texto.split("\n").filter((l) => l.startsWith("• ")).map((l) => l.slice(2));
   for (const texto of todos()) assert.ok(consejos(texto).length <= CONSEJOS_MENSAJE.maximo);
 
-  for (const conLluvia of [{ lluviaMm: 60 }, { lluvia3dMm: 150 }, { lluviaMm: 60, rachasMaxKmh: 75 }]) {
+  for (const conLluvia of [{ lluviaMm: 120 }, { lluvia3dMm: 250 }, { lluviaMm: 60, rachasMaxKmh: 75 }]) {
     assert.equal(consejos(mensaje({ 1: conLluvia }) ?? "")[0], CONSEJO_NO_CRUCES);
   }
   // Solo viento: no habla de calles con corriente.
@@ -123,14 +131,15 @@ test("como mucho 4 consejos; con lluvia, «No cruces…» siempre va primero", (
 
 test("alerta solo en los días que pueden cambiar: «Podría venir…»", () => {
   const lineas = (deEscenario("posible") ?? "").split("\n");
-  assert.equal(lineas[0], "🔴 POSIBLE MAL TIEMPO FUERTE a Magallanes");
+  assert.equal(lineas[0], "🔴 Posible mal tiempo a Magallanes");
   // Las condiciones van siempre en el mismo orden: lluvia, viento, mar.
   assert.equal(lineas[1], "Podría venir el lunes 9 (puede cambiar). Lluvia fuerte y viento muy fuerte; se pueden inundar calles.");
 });
 
 test("lo peor en un día que puede cambiar se marca así", () => {
-  // Amarillo mañana (confiable), rojo el lunes 9 (puede cambiar).
+  // Amarillo mañana (confiable), rojo el lunes 9 (puede cambiar): se publica como posible.
   const lineas = (mensaje({ 1: { rachasMaxKmh: 55 }, 3: { rachasMaxKmh: 80 } }) ?? "").split("\n");
+  assert.equal(lineas[0], "🔴 Posible mal tiempo a Magallanes");
   assert.equal(lineas[1], "Lo peor: el lunes 9 (puede cambiar). Viento muy fuerte.");
 });
 

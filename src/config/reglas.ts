@@ -91,13 +91,15 @@ export const NOMBRES_SIN_ALERTA: Record<Variable, string> = {
   olas: "olas",
 };
 
-// Qué viene, en el resumen general ("Lluvia intensa y viento fuerte desde ...").
-// `categoria` es la de la escala del SMN para la lluvia más alta entre los días con alerta.
-export const QUE_VIENE: Record<Variable, (categoria: string | null) => string> = {
-  lluvia: (categoria) => categoria ?? "lluvia",
-  lluvia3d: () => "mucha lluvia acumulada",
-  rachas: () => "viento fuerte",
-  olas: () => "olas altas",
+// Motivo bajo el encabezado, con el valor más alto entre los días con alerta: "Olas de hasta
+// 1.5 m en el mar hoy." Concreto y tranquilo; nunca dice "mal tiempo" (una prueba lo revisa),
+// porque en amarillo esa frase alarmaría por condiciones que solo piden precaución.
+// `valor` ya viene formateado.
+export const MOTIVO: Record<Variable, (valor: string) => string> = {
+  lluvia: (valor) => `lluvia de hasta ${valor} mm`,
+  lluvia3d: (valor) => `lluvia acumulada de hasta ${valor} mm en ${DIAS_LLUVIA_ACUMULADA} días`,
+  rachas: (valor) => `rachas de viento de hasta ${valor} km/h`,
+  olas: (valor) => `olas de hasta ${valor} m en el mar`,
 };
 
 export type ContextoFrase = { valor: string; delDia: string; categoria: string | null };
@@ -125,16 +127,26 @@ export const NOTA_EN_PRUEBA = (detalle: string) =>
 
 const PUEDE_CAMBIAR = "(puede cambiar)";
 
-// Respuesta grande a la PREGUNTA, para los próximos días. El título expresa gravedad,
-// no certeza; "posible" solo cuando lo peor está en los días que pueden cambiar.
+// Respuesta grande a la PREGUNTA, según el nivel más alto de los próximos días.
+// "Sí, viene mal tiempo" se reserva para el rojo en los días confiables, para que la gente
+// confíe en él cuando de verdad importa; el amarillo no alarma ("Precaución") y nunca dice
+// "mal tiempo". En oraciones normales, no en mayúsculas: se leen mejor y no suenan a grito.
+//
+// rojo, rojoPosible y sinDatos son el contrato con los monitores de UptimeRobot, que buscan
+// estos textos exactos para avisar cuándo publicar en Facebook y cuándo no hay datos. Si
+// cambian, hay que actualizar los monitores (src/lib/monitores.test.ts falla para recordarlo).
 export const RESPUESTA_GENERAL = {
-  rojo: "SÍ, VIENE MAL TIEMPO FUERTE",
-  amarillo: "SÍ, VIENE MAL TIEMPO",
-  rojoPosible: "POSIBLE MAL TIEMPO FUERTE",
-  amarilloPosible: "POSIBLE MAL TIEMPO",
-  verde: "NO SE ESPERA MAL TIEMPO",
-  verdeIncompleto: "PROBABLEMENTE NO",
-  sinDatos: "NO SABEMOS",
+  rojo: "Sí, viene mal tiempo",
+  rojoPosible: "Posible mal tiempo", // rojo solo en los días que pueden cambiar
+  amarillo: "Precaución",
+  verde: "No, no se espera mal tiempo",
+  // Neutral a propósito: cuando falta información no debe sonar tranquilizador.
+  verdeIncompleto: "Sin alertas con los datos disponibles",
+  sinDatos: "No sabemos",
+  // Motivo del rojo: solo lo que está en rojo y cuándo es lo peor, en una o dos líneas;
+  // el detalle (con números) queda en "Día por día". "Muy fuerte", como en el mensaje.
+  enRojo: (que: string, plural: boolean) => `${que} ${plural ? "muy fuertes" : "muy fuerte"}`,
+  loPeor: (cuando: string) => `lo peor, ${cuando}`,
   sinAlertas: (variables: string, dias: number) => `Sin alertas de ${variables} en los próximos ${dias} días.`,
   sinDatosDetalle: "No hay datos del pronóstico; revisa los avisos de Protección Civil.",
   puedeCambiar: PUEDE_CAMBIAR,
@@ -190,8 +202,9 @@ export const QUE_HACER = {
   siempre: [CONSEJO_CELULARES, CONSEJO_EMERGENCIAS],
 };
 
-// Mensaje para Facebook. Solo se publica cuando hay alerta, para que la gente no se
-// acostumbre a leer avisos de buen tiempo y deje de leer los de mal tiempo.
+// Mensaje para Facebook. Solo se publica con alerta roja, para que la gente no se acostumbre
+// a leer avisos (de buen tiempo o de simple precaución) y deje de leer los de mal tiempo.
+// El amarillo se ve en la página, pero no se publica.
 // Lenguaje sencillo: sin números ni palabras técnicas (una prueba lo revisa). Los números
 // se quedan en la página, que es el enlace del mensaje.
 export const MENSAJE = {
@@ -212,7 +225,7 @@ export const MENSAJE = {
   // Open-Meteo exige atribución (licencia CC BY 4.0).
   atribucion: "Datos: Open-Meteo.com",
   // Lo dicen igual el script (npm run mensaje) y la página /mensaje.
-  sinAlerta: "Sin alerta: hoy no se publica.",
+  sinAlerta: "Sin alerta roja: hoy no se publica.",
 };
 
 // Cómo se dice cada alerta en el mensaje: consecuencias, no números.

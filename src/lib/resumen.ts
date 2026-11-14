@@ -3,16 +3,15 @@
 // contradecirse.
 
 import type { PronosticoDia } from "./open-meteo.ts";
-import { evaluarDia, VARIABLES, type Evaluacion, type Nivel, type Reglas } from "./semaforo.ts";
-import { categoriaLluvia } from "./lluvia.ts";
+import { evaluarDia, VARIABLES, type Evaluacion, type Reglas } from "./semaforo.ts";
 import { diasEntre, elDia, puedeCambiar } from "./tiempo.ts";
 import { lista, listaDeFaltantes, type Tono } from "./respuesta.ts";
 import {
   FALTAN_DATOS_PARA,
+  MOTIVO,
   NOMBRES_SIN_ALERTA,
   CONSEJOS_MENSAJE,
   QUE_HACER,
-  QUE_VIENE,
   RESPUESTA_GENERAL,
   SIN_DATOS_PARA,
   UMBRALES,
@@ -35,7 +34,7 @@ export function evaluarPronostico(dias: PronosticoDia[], hoy: string, reglas: Re
   }));
 }
 
-const GRAVEDAD: Nivel[] = ["verde", "amarillo", "rojo"];
+const numero = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 });
 
 function conAlerta(dias: DiaEvaluado[]): DiaEvaluado[] {
   return dias.filter(({ evaluacion }) => evaluacion.nivel === "amarillo" || evaluacion.nivel === "rojo");
@@ -52,30 +51,47 @@ function mayuscula(texto: string): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-// "Lluvia intensa y viento fuerte desde mañana; lo más fuerte el sábado 8."
-// `dias` son solo los días con alerta, en orden.
-function describirAlerta(dias: DiaEvaluado[], hoy: string, posible: boolean): string {
+// "Olas de hasta 1.5 m en el mar hoy."
+// "Lluvia de hasta 120 mm y rachas de viento de hasta 75 km/h desde hoy; lo más fuerte mañana."
+// `dias` son solo los días con alerta, en orden. De cada variable, el valor más alto.
+// Se usa en amarillo; el rojo tiene su propio motivo, más corto (describirRojo).
+function describirAlerta(dias: DiaEvaluado[], hoy: string): string {
   const razones = dias.flatMap(({ evaluacion }) => evaluacion.razones);
-  const lluviaMaxima = Math.max(0, ...razones.filter((r) => r.variable === "lluvia").map((r) => r.valor));
-  // Sin repetir: la lluvia de un día y la de 3 días pueden coincidir.
-  const queViene = [
-    ...new Set(
-      VARIABLES.filter((variable) => razones.some((r) => r.variable === variable)).map((variable) =>
-        QUE_VIENE[variable](categoriaLluvia(lluviaMaxima)),
-      ),
-    ),
-  ];
+  const motivos = VARIABLES.flatMap((variable) => {
+    const valores = razones.filter((r) => r.variable === variable).map((r) => r.valor);
+    return valores.length > 0 ? [MOTIVO[variable](numero.format(Math.max(...valores)))] : [];
+  });
 
   const nivel = peorNivel(dias);
   const inicio = dias[0];
   const pico = dias.find(({ evaluacion }) => evaluacion.nivel === nivel) ?? inicio;
+  // Si el primer día ya es el peor, se nombran todos los días ("mañana y el sábado 7"): decir
+  // solo el primero daría a entender que todo pasa ese día. Son como mucho 3 (los confiables).
   const cuando =
     inicio === pico
-      ? elDia(pico.dia.fecha, hoy)
+      ? lista.format(dias.map(({ dia }) => elDia(dia.fecha, hoy)))
       : `desde ${elDia(inicio.dia.fecha, hoy)}; lo más fuerte ${elDia(pico.dia.fecha, hoy)}`;
 
-  const que = lista.format(queViene);
-  const texto = posible ? `Posible ${que} ${cuando}` : `${mayuscula(que)} ${cuando}`;
+  const texto = `${mayuscula(lista.format(motivos))} ${cuando}`;
+  return pico.puedeCambiar ? `${texto} ${RESPUESTA_GENERAL.puedeCambiar}.` : `${texto}.`;
+}
+
+// Motivo del rojo, en una o dos líneas: solo lo que está en rojo y cuándo es lo peor.
+// "Lluvia, viento y olas muy fuertes; lo peor, mañana." / "Viento muy fuerte mañana."
+// Sin números: el detalle queda en "Día por día". `dias` son los días con alerta.
+function describirRojo(dias: DiaEvaluado[], hoy: string): string {
+  const enRojo = (d: DiaEvaluado) => d.evaluacion.razones.filter((r) => r.nivel === "rojo").map((r) => r.variable);
+  const rojos = dias.filter((d) => enRojo(d).length > 0);
+  const variables = VARIABLES.filter((v) => rojos.some((d) => enRojo(d).includes(v)));
+  // La lluvia de un día y la de 3 días se dicen igual ("lluvia"): sin repetir.
+  const nombres = [...new Set(variables.map((v) => NOMBRES_SIN_ALERTA[v]))];
+  const plural = nombres.length > 1 || variables.every((v) => v === "olas");
+
+  // Lo peor: el día con más cosas en rojo (si empatan, el primero).
+  const pico = rojos.reduce((peor, d) => (enRojo(d).length > enRojo(peor).length ? d : peor));
+  const que = mayuscula(RESPUESTA_GENERAL.enRojo(lista.format(nombres), plural));
+  const cuando = elDia(pico.dia.fecha, hoy);
+  const texto = rojos.length === 1 ? `${que} ${cuando}` : `${que}; ${RESPUESTA_GENERAL.loPeor(cuando)}`;
   return pico.puedeCambiar ? `${texto} ${RESPUESTA_GENERAL.puedeCambiar}.` : `${texto}.`;
 }
 
@@ -126,33 +142,34 @@ export function respuestaGeneral(dias: DiaEvaluado[], hoy: string, reglas: Regla
   }
 
   const faltantes = describirFaltantes(dias, hoy);
-  const alertaConfiable = conAlerta(dias.filter((d) => !d.puedeCambiar));
-  const alertaLejana = conAlerta(dias.filter((d) => d.puedeCambiar));
-  const nivelConfiable = peorNivel(alertaConfiable);
-  const nivelLejano = peorNivel(alertaLejana);
+  const alertas = conAlerta(dias);
+  const nivel = peorNivel(alertas);
 
-  // Hay alerta en los días confiables: el título lo pone lo que es más seguro.
-  // Si los días que pueden cambiar también traen alerta, se menciona: como "posible"
-  // si es peor, o como "podría seguir / volver" si no lo es.
-  if (nivelConfiable !== null) {
-    let detalle = describirAlerta(alertaConfiable, hoy, false);
-    if (nivelLejano !== null) {
-      detalle +=
-        GRAVEDAD.indexOf(nivelLejano) > GRAVEDAD.indexOf(nivelConfiable)
-          ? ` ${describirAlerta(alertaLejana, hoy, true)}`
-          : ` ${describirContinuacion(alertaConfiable, alertaLejana, hoy)}`;
+  // El título lo pone el nivel más alto de todos los días. Si ese nivel solo aparece en los
+  // días que pueden cambiar, es "posible": en rojo, "Posible mal tiempo" en lugar de
+  // "Sí, viene mal tiempo", que queda reservado para lo que sí es confiable.
+  if (nivel !== null) {
+    const confiables = alertas.filter((d) => !d.puedeCambiar);
+    const lejanos = alertas.filter((d) => d.puedeCambiar);
+    const posible = alertas.filter((d) => d.evaluacion.nivel === nivel).every((d) => d.puedeCambiar);
+
+    if (nivel === "rojo") {
+      return {
+        tono: "rojo",
+        titulo: posible ? RESPUESTA_GENERAL.rojoPosible : RESPUESTA_GENERAL.rojo,
+        detalle: describirRojo(alertas, hoy),
+        nota: faltantes,
+      };
     }
-    return { tono: nivelConfiable, titulo: RESPUESTA_GENERAL[nivelConfiable], detalle, nota: faltantes };
-  }
 
-  // La alerta solo está en los días que pueden cambiar.
-  if (nivelLejano !== null) {
-    return {
-      tono: nivelLejano,
-      titulo: nivelLejano === "rojo" ? RESPUESTA_GENERAL.rojoPosible : RESPUESTA_GENERAL.amarilloPosible,
-      detalle: describirAlerta(alertaLejana, hoy, false),
-      nota: faltantes,
-    };
+    // Amarillo: primero lo confiable; lo de los días que pueden cambiar, como "podría
+    // seguir / volver". (Si todo es lejano, se describe con "(puede cambiar)".)
+    let detalle: string;
+    if (confiables.length === 0) detalle = describirAlerta(lejanos, hoy);
+    else if (lejanos.length > 0) {
+      detalle = `${describirAlerta(confiables, hoy)} ${describirContinuacion(confiables, lejanos, hoy)}`;
+    } else detalle = describirAlerta(confiables, hoy);
+    return { tono: "amarillo", titulo: RESPUESTA_GENERAL.amarillo, detalle, nota: faltantes };
   }
 
   // Sin alertas: completo o con datos faltantes.
