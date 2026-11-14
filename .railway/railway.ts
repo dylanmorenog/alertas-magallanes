@@ -2,8 +2,8 @@
 // Reemplaza a railway.json, que Railway deja de leer el 2026-12-01.
 //
 // Traducido de railway.json con `railway config migrate` (prueba en seco) y completado a
-// mano: la traducción automática no incluía la política de reinicio, y sin ella el
-// servicio pasaría a los 10 reintentos del panel en lugar de los 3 de railway.json.
+// mano: la traducción automática no incluía los reintentos, y sin ellos el servicio
+// pasaría a los 10 reintentos por defecto en lugar de los 3 de railway.json.
 //
 // Revisar cambios con `railway config plan` antes de `railway config apply`.
 //
@@ -26,7 +26,11 @@ export default defineRailway(() => {
     healthcheck: "/",
     healthcheckTimeout: 120,
     replicas: { iad: 1 },
-    deploy: { restartPolicyType: "ON_FAILURE", restartPolicyMaxRetries: 3 },
+    // Reinicio ON_FAILURE: es el valor por defecto de Railway ("The default is On Failure
+    // with a maximum of 10 restarts", docs.railway.com/deployments/restart-policy), así que
+    // no se declara: Railway lo guarda como null y el plan lo mostraría como cambio cada vez.
+    // Los reintentos sí se declaran: 3 en vez de los 10 por defecto, como en railway.json.
+    deploy: { restartPolicyMaxRetries: 3 },
   });
 
   return project("balanced-enjoyment", {
